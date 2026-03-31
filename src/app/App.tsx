@@ -127,6 +127,18 @@ function loadPersistedAppState(): PersistedAppState {
   }
 }
 
+function getFirebaseErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return `${fallback} ${error.message}`;
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return `${fallback} ${error}`;
+  }
+
+  return fallback;
+}
+
 export default function App() {
   const [initialState] = useState(loadPersistedAppState);
   const [launchState] = useState(readLaunchState);
@@ -349,8 +361,8 @@ export default function App() {
     try {
       await saveParticipant(session.id, nextParticipant);
       setActiveParticipantId(nextParticipant.id);
-    } catch {
-      setParticipantsError('Не удалось добавить участника в Firestore.');
+    } catch (error) {
+      setParticipantsError(getFirebaseErrorMessage(error, 'Не удалось добавить участника в Firestore.'));
     }
   }
 
@@ -379,8 +391,8 @@ export default function App() {
       setParticipantNameDraft('');
       setJoinCodeDraft('');
       setJoinError('');
-    } catch {
-      setJoinError('Не удалось зарегистрировать участника в Firestore.');
+    } catch (error) {
+      setJoinError(getFirebaseErrorMessage(error, 'Не удалось зарегистрировать участника в Firestore.'));
     }
   }
 
@@ -397,9 +409,9 @@ export default function App() {
         const credentials = await signInAnonymously(auth);
         setAuthUid(credentials.user.uid);
         setAuthError('');
-      } catch {
+      } catch (error) {
         setAuthUid(null);
-        setAuthError('Не удалось подключиться к Firebase. Проверьте настройки проекта.');
+        setAuthError(getFirebaseErrorMessage(error, 'Не удалось подключиться к Firebase. Проверьте настройки проекта.'));
       } finally {
         setAuthReady(true);
       }
@@ -432,19 +444,19 @@ export default function App() {
             setSessionReady(true);
             setSessionError('');
           },
-          () => {
+          (error) => {
             if (!isActive) {
               return;
             }
 
-            setSessionError('Не удалось получить живую сессию из Firestore.');
+            setSessionError(getFirebaseErrorMessage(error, 'Не удалось получить живую сессию из Firestore.'));
           },
         );
 
         return unsubscribe;
-      } catch {
+      } catch (error) {
         if (isActive) {
-          setSessionError('Не удалось создать документ сессии в Firestore.');
+          setSessionError(getFirebaseErrorMessage(error, 'Не удалось создать документ сессии в Firestore.'));
         }
 
         return undefined;
@@ -468,8 +480,8 @@ export default function App() {
       return;
     }
 
-    saveSessionDocument(session, authUid).catch(() => {
-      setSessionError('Не удалось сохранить изменения сессии в Firestore.');
+    saveSessionDocument(session, authUid).catch((error) => {
+      setSessionError(getFirebaseErrorMessage(error, 'Не удалось сохранить изменения сессии в Firestore.'));
     });
   }, [session, authUid, sessionReady]);
 
@@ -487,8 +499,8 @@ export default function App() {
         setParticipantsReady(true);
         setParticipantsError('');
       },
-      () => {
-        setParticipantsError('Не удалось получить список участников из Firestore.');
+      (error) => {
+        setParticipantsError(getFirebaseErrorMessage(error, 'Не удалось получить список участников из Firestore.'));
       },
     );
 
@@ -509,8 +521,8 @@ export default function App() {
         setResponsesReady(true);
         setResponsesError('');
       },
-      () => {
-        setResponsesError('Не удалось получить ответы из Firestore.');
+      (error) => {
+        setResponsesError(getFirebaseErrorMessage(error, 'Не удалось получить ответы из Firestore.'));
       },
     );
 
