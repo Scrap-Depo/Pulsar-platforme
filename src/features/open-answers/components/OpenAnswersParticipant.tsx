@@ -27,7 +27,6 @@ export default function OpenAnswersParticipant({
 }: OpenAnswersParticipantProps) {
   return (
     <Card>
-      <p className="muted">Участник</p>
       <h2 style={{ marginTop: 0 }}>{question}</h2>
       <div className="section-stack">
         <textarea

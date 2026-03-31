@@ -15,7 +15,7 @@ import WordCloudProjector from '../features/word-cloud/components/WordCloudProje
 import FreezeOverlay from '../widgets/controls/FreezeOverlay';
 import AdminShell from '../widgets/layout/AdminShell';
 import Button from '../shared/ui/Button';
-import { AppScreen, MultipleChoiceVisualization, OpenAnswersVisualization, Participant, PulseVisualization, Session, SessionSlide, SlideType, WordCloudVisualization } from '../shared/types/common';
+import { AppScreen, MultipleChoiceVisualization, OpenAnswersVisualization, PulseVisualization, Session, SessionSlide, SlideType, WordCloudVisualization } from '../shared/types/common';
 import { createSlide, createTemplateSlide, duplicateSlide, removeSlide, reorderSlides, slideTemplates } from '../shared/lib/session';
 import { MultipleChoiceOption } from '../features/multiple-choice/model/types';
 import { OpenAnswer } from '../features/open-answers/model/types';
@@ -28,7 +28,7 @@ type AdminPageProps = {
   session: Session;
   currentSlide: SessionSlide | null;
   liveSlide: SessionSlide | null;
-  participants: Participant[];
+  audienceCount: number;
   isFrozen: boolean;
   mcQuestion: string;
   mcOptions: MultipleChoiceOption[];
@@ -99,7 +99,7 @@ export default function AdminPage({
   session,
   currentSlide,
   liveSlide,
-  participants,
+  audienceCount,
   isFrozen,
   mcQuestion,
   mcOptions,
@@ -406,6 +406,7 @@ export default function AdminPage({
         distribution={pulseDistribution}
         visualization={currentSlide?.type === 'pulse' ? currentSlide.visualization : 'bars'}
         metricDisplay={pulseMetricDisplay}
+        compact
       />
     ),
     'word-cloud': (
@@ -449,6 +450,7 @@ export default function AdminPage({
               distribution={livePulseDistribution}
               visualization={livePulseVisualization}
               metricDisplay={livePulseMetricDisplay}
+              compact
             />
           ),
           'word-cloud': (
@@ -851,7 +853,7 @@ export default function AdminPage({
               </div>
               <div className="admin-status-card admin-status-card-participants">
                 <p className="muted">Участники</p>
-                <strong>{participants.length}</strong>
+                <strong>{audienceCount}</strong>
               </div>
             </div>
             <div className="admin-speaker-stage">

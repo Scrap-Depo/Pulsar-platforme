@@ -18,7 +18,6 @@ export default function WordCloudParticipant({
 }: WordCloudParticipantProps) {
   return (
     <Card>
-      <p className="muted">Участник</p>
       <h2 style={{ marginTop: 0 }}>{title}</h2>
       <div className="section-stack">
         <input

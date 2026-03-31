@@ -17,7 +17,6 @@ export default function PulseParticipant({
 }: PulseParticipantProps) {
   return (
     <Card>
-      <p className="muted">Участник</p>
       <h2 style={{ marginTop: 0 }}>{title}</h2>
       <div className="section-stack">
         <div className="button-row" style={{ justifyContent: 'space-between' }}>

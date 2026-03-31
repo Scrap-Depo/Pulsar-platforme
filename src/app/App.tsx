@@ -601,6 +601,10 @@ export default function App() {
   const liveCloudWords = buildWordCloudWords(liveWordCloudSlide?.id ?? null, liveWordCloudSlide?.useAI ?? true);
   const currentMcOptions = buildMultipleChoiceOptions(currentMultipleChoiceSlide);
   const liveMcOptions = buildMultipleChoiceOptions(liveMultipleChoiceSlide);
+  const audienceCount = Math.max(
+    participants.length,
+    new Set(responses.map((response) => response.participantId)).size,
+  );
   const mcHasVoted =
     !!liveMultipleChoiceSlide &&
     responses.some(
@@ -692,7 +696,7 @@ export default function App() {
           session={session}
           currentSlide={currentSlide}
           liveSlide={liveSlide}
-          participants={participants}
+          audienceCount={audienceCount}
           isFrozen={isFrozen}
           mcQuestion={currentMultipleChoiceSlide?.title ?? 'Новый опрос'}
           mcOptions={currentMcOptions}
