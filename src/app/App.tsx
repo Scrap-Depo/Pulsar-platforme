@@ -432,6 +432,10 @@ export default function App() {
       try {
         setSessionReady(false);
         await ensureSessionDocument(session, ownerUid);
+        if (isActive) {
+          setSessionReady(true);
+          setSessionError('');
+        }
 
         const unsubscribe = subscribeToSession(
           session.id,
