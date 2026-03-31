@@ -27,5 +27,5 @@ export const auth = getAuth(firebaseApp);
 export const db = getApps().length
   ? getFirestore(firebaseApp)
   : initializeFirestore(firebaseApp, {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     });
