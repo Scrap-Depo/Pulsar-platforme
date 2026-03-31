@@ -28,5 +28,4 @@ export const db = getApps().length
   ? getFirestore(firebaseApp)
   : initializeFirestore(firebaseApp, {
       experimentalAutoDetectLongPolling: true,
-      useFetchStreams: false,
     });
