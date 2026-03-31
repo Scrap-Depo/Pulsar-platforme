@@ -173,26 +173,6 @@ export default function ParticipantPage({
   return (
     <ParticipantShell appTitle={appTitle}>
       <div className="section-stack">
-        <div
-          className="card"
-          style={{
-            padding: '16px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}
-        >
-          <div>
-            <p className="muted" style={{ margin: 0 }}>Вы подключены</p>
-            <p style={{ margin: '6px 0 0', fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
-              {activeParticipant.name}
-            </p>
-          </div>
-          <p className="muted" style={{ margin: 0, textAlign: 'right' }}>
-            Отвечайте на текущий слайд
-          </p>
-        </div>
         {liveModule ? (
           moduleContent
         ) : (

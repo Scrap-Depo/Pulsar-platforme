@@ -1,13 +1,9 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import MultipleChoiceProjector from '../features/multiple-choice/components/MultipleChoiceProjector';
 import OpenAnswersProjector from '../features/open-answers/components/OpenAnswersProjector';
 import PulseProjector from '../features/pulse/components/PulseProjector';
 import WordCloudProjector from '../features/word-cloud/components/WordCloudProjector';
 import ProjectorShell from '../widgets/layout/ProjectorShell';
-import Button from '../shared/ui/Button';
 import {
-  AppScreen,
   LiveModule,
   MultipleChoiceResultDisplay,
   MultipleChoiceVisualization,
@@ -46,7 +42,6 @@ type ProjectorPageProps = {
   cloudParticipantWord: string;
   cloudVisualization: WordCloudVisualization;
   onFocusedAnswerChange: (id: string | null) => void;
-  onScreenChange: (screen: AppScreen) => void;
 };
 
 export default function ProjectorPage({
@@ -74,9 +69,7 @@ export default function ProjectorPage({
   cloudParticipantWord,
   cloudVisualization,
   onFocusedAnswerChange,
-  onScreenChange,
 }: ProjectorPageProps) {
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const moduleContent = {
     'multiple-choice': (
       <MultipleChoiceProjector
@@ -120,26 +113,6 @@ export default function ProjectorPage({
   return (
     <ProjectorShell appTitle={appTitle}>
       <div className="section-stack">
-        <div className="card" style={{ padding: 24 }}>
-          <div className="panel-header-row">
-            <h1 className="hero-title" style={{ marginBottom: 0 }}>Экран проектора</h1>
-            <Button variant="ghost" onClick={() => setIsPanelCollapsed((value) => !value)}>
-              {isPanelCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            </Button>
-          </div>
-          {!isPanelCollapsed && (
-            <>
-              <p className="hero-text">
-                Здесь показывается тот экран, который сейчас видит аудитория.
-              </p>
-              <div className="button-row" style={{ marginTop: 16 }}>
-                <Button variant="secondary" onClick={() => onScreenChange('admin')}>
-                  Назад в админку
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
         <div className="projector-stage card" style={{ opacity: isFrozen ? 0.45 : 1 }}>
           {isFrozen ? (
             <div style={{ textAlign: 'center' }}>

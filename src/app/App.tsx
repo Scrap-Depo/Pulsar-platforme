@@ -890,7 +890,6 @@ export default function App() {
           cloudParticipantWord={cloudParticipantWord}
           cloudVisualization={liveWordCloudSlide?.visualization ?? 'cloud'}
           onFocusedAnswerChange={setFocusedAnswerId}
-          onScreenChange={setScreen}
         />
       )}
     </>
