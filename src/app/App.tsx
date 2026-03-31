@@ -352,20 +352,6 @@ export default function App() {
     setDraftAnswerText('');
   }
 
-  async function addParticipant() {
-    const nextParticipant: Participant = {
-      id: createId('participant'),
-      name: `Участник ${participants.length + 1}`,
-    };
-
-    try {
-      await saveParticipant(session.id, nextParticipant);
-      setActiveParticipantId(nextParticipant.id);
-    } catch (error) {
-      setParticipantsError(getFirebaseErrorMessage(error, 'Не удалось добавить участника в Firestore.'));
-    }
-  }
-
   async function joinParticipant() {
     const code = joinCodeDraft.trim().toUpperCase();
 
@@ -830,7 +816,6 @@ export default function App() {
       {screen === 'participant' && (
         <ParticipantPage
           appTitle={APP_TITLE}
-          participants={participants}
           activeParticipant={activeParticipant}
           joinCode={session.joinCode}
           joinCodeDraft={joinCodeDraft}
@@ -875,14 +860,8 @@ export default function App() {
               upsertSingleResponse(liveWordCloudSlide.id, 'word-cloud', value);
             }
           }}
-          onActiveParticipantChange={(participantId) => {
-            setActiveParticipantId(participantId);
-            setJoinError('');
-          }}
-          onAddParticipant={addParticipant}
           onJoinCodeDraftChange={setJoinCodeDraft}
           onJoinSession={joinParticipant}
-          onScreenChange={setScreen}
         />
       )}
       {screen === 'projector' && (

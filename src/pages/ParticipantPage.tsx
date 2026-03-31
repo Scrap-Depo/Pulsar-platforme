@@ -1,19 +1,16 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import MultipleChoiceParticipant from '../features/multiple-choice/components/MultipleChoiceParticipant';
 import OpenAnswersParticipant from '../features/open-answers/components/OpenAnswersParticipant';
 import PulseParticipant from '../features/pulse/components/PulseParticipant';
 import WordCloudParticipant from '../features/word-cloud/components/WordCloudParticipant';
 import ParticipantShell from '../widgets/layout/ParticipantShell';
 import Button from '../shared/ui/Button';
-import { AppScreen, LiveModule, Participant } from '../shared/types/common';
+import { LiveModule, Participant } from '../shared/types/common';
 import { MultipleChoiceOption } from '../features/multiple-choice/model/types';
 import { OpenAnswer } from '../features/open-answers/model/types';
 import { WordCloudItem } from '../features/word-cloud/model/types';
 
 type ParticipantPageProps = {
   appTitle: string;
-  participants: Participant[];
   activeParticipant: Participant | null;
   joinCode: string;
   joinCodeDraft: string;
@@ -46,16 +43,12 @@ type ParticipantPageProps = {
   onOpenLikeToggle: (id: string) => void;
   onPulseParticipantValueChange: (value: number) => void;
   onCloudParticipantWordChange: (value: string) => void;
-  onActiveParticipantChange: (participantId: string) => void;
-  onAddParticipant: () => void;
   onJoinCodeDraftChange: (value: string) => void;
   onJoinSession: () => void;
-  onScreenChange: (screen: AppScreen) => void;
 };
 
 export default function ParticipantPage({
   appTitle,
-  participants,
   activeParticipant,
   joinCode,
   joinCodeDraft,
@@ -88,13 +81,9 @@ export default function ParticipantPage({
   onOpenLikeToggle,
   onPulseParticipantValueChange,
   onCloudParticipantWordChange,
-  onActiveParticipantChange,
-  onAddParticipant,
   onJoinCodeDraftChange,
   onJoinSession,
-  onScreenChange,
 }: ParticipantPageProps) {
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const moduleContent = {
     'multiple-choice': (
       <MultipleChoiceParticipant
@@ -173,9 +162,6 @@ export default function ParticipantPage({
                 <Button onClick={onJoinSession}>
                   {joinPending ? 'Подключаем...' : 'Присоединиться'}
                 </Button>
-                <Button variant="ghost" onClick={() => onScreenChange('admin')}>
-                  Назад в админку
-                </Button>
               </div>
             </div>
           </div>
@@ -187,43 +173,25 @@ export default function ParticipantPage({
   return (
     <ParticipantShell appTitle={appTitle}>
       <div className="section-stack">
-        <div className="card" style={{ padding: 28 }}>
-          <div className="panel-header-row">
-            <h1 className="hero-title" style={{ marginBottom: 0 }}>Экран участника</h1>
-            <Button variant="ghost" onClick={() => setIsPanelCollapsed((value) => !value)}>
-              {isPanelCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            </Button>
+        <div
+          className="card"
+          style={{
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
+          <div>
+            <p className="muted" style={{ margin: 0 }}>Вы подключены</p>
+            <p style={{ margin: '6px 0 0', fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
+              {activeParticipant.name}
+            </p>
           </div>
-          {!isPanelCollapsed && (
-            <>
-              <p className="muted" style={{ marginBottom: 14 }}>
-                Активный участник: <strong style={{ color: '#e2e8f0' }}>{activeParticipant.name}</strong>
-              </p>
-              <div className="button-row" style={{ marginBottom: 16 }}>
-                {participants.map((participant) => (
-                  <Button
-                    key={participant.id}
-                    variant={participant.id === activeParticipant.id ? 'primary' : 'secondary'}
-                    onClick={() => onActiveParticipantChange(participant.id)}
-                  >
-                    {participant.name}
-                  </Button>
-                ))}
-                <Button variant="ghost" onClick={onAddParticipant}>
-                  Добавить участника
-                </Button>
-              </div>
-              <p className="hero-text">
-                В этом слое живут формы ответа и взаимодействия аудитории.
-                <strong> {liveModule ? ` Сейчас активен модуль ${liveModule}.` : ' Сейчас модуль не выведен в эфир.'}</strong>
-              </p>
-              <div className="button-row" style={{ marginTop: 20 }}>
-                <Button variant="secondary" onClick={() => onScreenChange('admin')}>
-                  Вернуться в админку
-                </Button>
-              </div>
-            </>
-          )}
+          <p className="muted" style={{ margin: 0, textAlign: 'right' }}>
+            Отвечайте на текущий слайд
+          </p>
         </div>
         {liveModule ? (
           moduleContent
