@@ -427,10 +427,10 @@ export default function App() {
 
     const ownerUid = authUid;
     let isActive = true;
+    setSessionReady(true);
 
     async function setupSessionSync() {
       try {
-        setSessionReady(false);
         await ensureSessionDocument(session, ownerUid);
         if (isActive) {
           setSessionReady(true);
@@ -643,7 +643,7 @@ export default function App() {
     );
   }
 
-  if (!sessionReady) {
+  if (!sessionReady && !sessionError) {
     return (
       <div className="page-shell">
         <div className="page-content" style={{ padding: 32 }}>
@@ -653,7 +653,6 @@ export default function App() {
             <p className="hero-text">
               Готовим общий документ сессии, чтобы пульт ведущего, экран аудитории и участники работали в одном пространстве.
             </p>
-            {sessionError && <p style={{ color: '#fda4af', marginBottom: 0 }}>{sessionError}</p>}
           </div>
         </div>
       </div>
