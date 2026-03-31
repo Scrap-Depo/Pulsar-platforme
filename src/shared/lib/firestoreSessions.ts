@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { Session } from '../types/common';
 
@@ -13,19 +13,13 @@ function getSessionRef(sessionId: string) {
 
 export async function ensureSessionDocument(session: Session, ownerUid: string) {
   const sessionRef = getSessionRef(session.id);
-  const snapshot = await getDoc(sessionRef);
-
-  if (snapshot.exists()) {
-    return;
-  }
-
   const payload: FirestoreSession = {
     ...session,
     ownerUid,
     updatedAt: new Date().toISOString(),
   };
 
-  await setDoc(sessionRef, payload);
+  await setDoc(sessionRef, payload, { merge: true });
 }
 
 export function subscribeToSession(
@@ -57,5 +51,5 @@ export async function saveSessionDocument(session: Session, ownerUid: string) {
     updatedAt: new Date().toISOString(),
   };
 
-  await setDoc(getSessionRef(session.id), payload);
+  await setDoc(getSessionRef(session.id), payload, { merge: true });
 }
