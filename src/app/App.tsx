@@ -356,12 +356,12 @@ export default function App() {
   async function joinParticipant() {
     const code = joinCodeDraft.trim().toUpperCase();
 
-    if (!sessionSynced) {
-      setJoinError('Подключаем сессию. Попробуйте еще раз через секунду.');
+    if (!code) {
+      setJoinError('Код подключения не найден.');
       return;
     }
 
-    if (code !== session.joinCode) {
+    if (sessionSynced && code !== session.joinCode) {
       setJoinError('Неверный код подключения.');
       return;
     }
@@ -832,7 +832,6 @@ export default function App() {
           joinCodeDraft={joinCodeDraft}
           joinError={joinError}
           joinPending={joinPending}
-          sessionSynced={sessionSynced}
           liveModule={liveSlide?.type ?? null}
           mcOptions={liveMcOptions}
           mcQuestion={liveMultipleChoiceSlide?.title ?? 'Опрос'}

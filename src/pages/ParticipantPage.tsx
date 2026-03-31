@@ -16,7 +16,6 @@ type ParticipantPageProps = {
   joinCodeDraft: string;
   joinError: string;
   joinPending: boolean;
-  sessionSynced: boolean;
   liveModule: LiveModule;
   mcQuestion: string;
   mcOptions: MultipleChoiceOption[];
@@ -55,7 +54,6 @@ export default function ParticipantPage({
   joinCodeDraft,
   joinError,
   joinPending,
-  sessionSynced,
   liveModule,
   mcQuestion,
   mcOptions,
@@ -86,6 +84,7 @@ export default function ParticipantPage({
   onJoinCodeDraftChange,
   onJoinSession,
 }: ParticipantPageProps) {
+  const hasPrefilledJoinCode = Boolean(joinCodeDraft.trim());
   const moduleContent = {
     'multiple-choice': (
       <MultipleChoiceParticipant
@@ -139,30 +138,50 @@ export default function ParticipantPage({
             <p className="muted" style={{ marginTop: 0 }}>Подключение к сессии</p>
             <h1 className="hero-title">Войти в {appTitle}</h1>
             <p className="hero-text">
-              Введите только код сессии. Участники подключаются анонимно.
+              Вы подключаетесь анонимно.
             </p>
             <div className="section-stack" style={{ marginTop: 20 }}>
-              <label style={{ display: 'grid', gap: 8 }}>
-                <span className="muted">Код подключения</span>
-                <input
-                  type="text"
-                  value={joinCodeDraft}
-                  onChange={(event) => onJoinCodeDraftChange(event.target.value.toUpperCase())}
-                  placeholder={`Например, ${joinCode}`}
-                  style={{
-                    borderRadius: 14,
-                    padding: 12,
-                    border: '1px solid rgba(148, 163, 184, 0.18)',
-                    background: 'rgba(2, 6, 23, 0.35)',
-                    color: '#e2e8f0',
-                    textTransform: 'uppercase',
-                  }}
-                />
-              </label>
+              {hasPrefilledJoinCode ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <span className="muted">Код сессии</span>
+                  <div
+                    style={{
+                      borderRadius: 14,
+                      padding: 12,
+                      border: '1px solid rgba(148, 163, 184, 0.18)',
+                      background: 'rgba(2, 6, 23, 0.35)',
+                      color: '#e2e8f0',
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {joinCodeDraft}
+                  </div>
+                </div>
+              ) : (
+                <label style={{ display: 'grid', gap: 8 }}>
+                  <span className="muted">Код подключения</span>
+                  <input
+                    type="text"
+                    value={joinCodeDraft}
+                    onChange={(event) => onJoinCodeDraftChange(event.target.value.toUpperCase())}
+                    placeholder={`Например, ${joinCode}`}
+                    style={{
+                      borderRadius: 14,
+                      padding: 12,
+                      border: '1px solid rgba(148, 163, 184, 0.18)',
+                      background: 'rgba(2, 6, 23, 0.35)',
+                      color: '#e2e8f0',
+                      textTransform: 'uppercase',
+                    }}
+                  />
+                </label>
+              )}
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
               <div className="button-row">
-                <Button onClick={onJoinSession} disabled={joinPending || !sessionSynced}>
-                  {joinPending ? 'Подключаем...' : sessionSynced ? 'Присоединиться' : 'Подключаем сессию...'}
+                <Button onClick={onJoinSession} disabled={joinPending}>
+                  {joinPending ? 'Входим...' : 'Войти'}
                 </Button>
               </div>
             </div>
