@@ -10,12 +10,7 @@ export default function ParticipantShell({ appTitle, children }: ParticipantShel
   return (
     <div className="page-shell">
       <LiquidBackground />
-      <div className="page-content main-area">
-        <header style={{ marginBottom: 24 }}>
-          <p className="muted" style={{ margin: 0 }}>{appTitle}</p>
-        </header>
-        {children}
-      </div>
+      <div className="page-content main-area">{children}</div>
     </div>
   );
 }
