@@ -2,11 +2,10 @@ import { ReactNode } from 'react';
 import LiquidBackground from '../../shared/ui/LiquidBackground';
 
 type ParticipantShellProps = {
-  appTitle: string;
   children: ReactNode;
 };
 
-export default function ParticipantShell({ appTitle, children }: ParticipantShellProps) {
+export default function ParticipantShell({ children }: ParticipantShellProps) {
   return (
     <div className="page-shell">
       <LiquidBackground />

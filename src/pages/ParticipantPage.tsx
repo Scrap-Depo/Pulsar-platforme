@@ -16,6 +16,7 @@ type ParticipantPageProps = {
   joinCodeDraft: string;
   joinError: string;
   joinPending: boolean;
+  sessionSynced: boolean;
   liveModule: LiveModule;
   mcQuestion: string;
   mcOptions: MultipleChoiceOption[];
@@ -54,6 +55,7 @@ export default function ParticipantPage({
   joinCodeDraft,
   joinError,
   joinPending,
+  sessionSynced,
   liveModule,
   mcQuestion,
   mcOptions,
@@ -131,7 +133,7 @@ export default function ParticipantPage({
 
   if (!activeParticipant) {
     return (
-      <ParticipantShell appTitle={appTitle}>
+      <ParticipantShell>
         <div className="section-stack">
           <div className="card" style={{ padding: 28, maxWidth: 680 }}>
             <p className="muted" style={{ marginTop: 0 }}>Подключение к сессии</p>
@@ -159,8 +161,8 @@ export default function ParticipantPage({
               </label>
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
               <div className="button-row">
-                <Button onClick={onJoinSession}>
-                  {joinPending ? 'Подключаем...' : 'Присоединиться'}
+                <Button onClick={onJoinSession} disabled={joinPending || !sessionSynced}>
+                  {joinPending ? 'Подключаем...' : sessionSynced ? 'Присоединиться' : 'Подключаем сессию...'}
                 </Button>
               </div>
             </div>
@@ -171,7 +173,7 @@ export default function ParticipantPage({
   }
 
   return (
-    <ParticipantShell appTitle={appTitle}>
+    <ParticipantShell>
       <div className="section-stack">
         {liveModule ? (
           moduleContent

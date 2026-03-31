@@ -164,6 +164,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
   const [sessionReady, setSessionReady] = useState(false);
+  const [sessionSynced, setSessionSynced] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const [participantsReady, setParticipantsReady] = useState(false);
   const [participantsError, setParticipantsError] = useState('');
@@ -355,6 +356,11 @@ export default function App() {
   async function joinParticipant() {
     const code = joinCodeDraft.trim().toUpperCase();
 
+    if (!sessionSynced) {
+      setJoinError('Подключаем сессию. Попробуйте еще раз через секунду.');
+      return;
+    }
+
     if (code !== session.joinCode) {
       setJoinError('Неверный код подключения.');
       return;
@@ -419,6 +425,7 @@ export default function App() {
         await ensureSessionDocument(session, ownerUid);
         if (isActive) {
           setSessionReady(true);
+          setSessionSynced(false);
           setSessionError('');
         }
 
@@ -431,13 +438,16 @@ export default function App() {
 
             setSession(nextSession);
             setSessionReady(true);
+            setSessionSynced(true);
             setSessionError('');
+            setJoinError('');
           },
           (error) => {
             if (!isActive) {
               return;
             }
 
+            setSessionSynced(false);
             setSessionError(getFirebaseErrorMessage(error, 'Не удалось получить живую сессию из Firestore.'));
           },
         );
@@ -445,6 +455,7 @@ export default function App() {
         return unsubscribe;
       } catch (error) {
         if (isActive) {
+          setSessionSynced(false);
           setSessionError(getFirebaseErrorMessage(error, 'Не удалось создать документ сессии в Firestore.'));
         }
 
@@ -821,6 +832,7 @@ export default function App() {
           joinCodeDraft={joinCodeDraft}
           joinError={joinError}
           joinPending={joinPending}
+          sessionSynced={sessionSynced}
           liveModule={liveSlide?.type ?? null}
           mcOptions={liveMcOptions}
           mcQuestion={liveMultipleChoiceSlide?.title ?? 'Опрос'}
