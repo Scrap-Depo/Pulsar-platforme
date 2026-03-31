@@ -17,7 +17,6 @@ type ParticipantPageProps = {
   activeParticipant: Participant | null;
   joinCode: string;
   joinCodeDraft: string;
-  participantNameDraft: string;
   joinError: string;
   liveModule: LiveModule;
   mcQuestion: string;
@@ -49,7 +48,6 @@ type ParticipantPageProps = {
   onActiveParticipantChange: (participantId: string) => void;
   onAddParticipant: () => void;
   onJoinCodeDraftChange: (value: string) => void;
-  onParticipantNameDraftChange: (value: string) => void;
   onJoinSession: () => void;
   onScreenChange: (screen: AppScreen) => void;
 };
@@ -60,7 +58,6 @@ export default function ParticipantPage({
   activeParticipant,
   joinCode,
   joinCodeDraft,
-  participantNameDraft,
   joinError,
   liveModule,
   mcQuestion,
@@ -92,7 +89,6 @@ export default function ParticipantPage({
   onActiveParticipantChange,
   onAddParticipant,
   onJoinCodeDraftChange,
-  onParticipantNameDraftChange,
   onJoinSession,
   onScreenChange,
 }: ParticipantPageProps) {
@@ -150,25 +146,9 @@ export default function ParticipantPage({
             <p className="muted" style={{ marginTop: 0 }}>Подключение к сессии</p>
             <h1 className="hero-title">Войти в {appTitle}</h1>
             <p className="hero-text">
-              Введите имя и код сессии, чтобы присоединиться как участник.
+              Введите только код сессии. Участники подключаются анонимно.
             </p>
             <div className="section-stack" style={{ marginTop: 20 }}>
-              <label style={{ display: 'grid', gap: 8 }}>
-                <span className="muted">Ваше имя</span>
-                <input
-                  type="text"
-                  value={participantNameDraft}
-                  onChange={(event) => onParticipantNameDraftChange(event.target.value)}
-                  placeholder="Например, Анна"
-                  style={{
-                    borderRadius: 14,
-                    padding: 12,
-                    border: '1px solid rgba(148, 163, 184, 0.18)',
-                    background: 'rgba(2, 6, 23, 0.35)',
-                    color: '#e2e8f0',
-                  }}
-                />
-              </label>
               <label style={{ display: 'grid', gap: 8 }}>
                 <span className="muted">Код подключения</span>
                 <input

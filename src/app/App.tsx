@@ -146,7 +146,6 @@ export default function App() {
   const [session, setSession] = useState<Session>(initialState.session);
   const [participants, setParticipants] = useState<Participant[]>(initialState.participants);
   const [activeParticipantId, setActiveParticipantId] = useState<string | null>(initialState.activeParticipantId);
-  const [participantNameDraft, setParticipantNameDraft] = useState('');
   const [joinCodeDraft, setJoinCodeDraft] = useState(launchState.joinCodeDraft);
   const [joinError, setJoinError] = useState('');
   const [isFrozen, setIsFrozen] = useState(initialState.isFrozen);
@@ -367,13 +366,7 @@ export default function App() {
   }
 
   async function joinParticipant() {
-    const name = participantNameDraft.trim();
     const code = joinCodeDraft.trim().toUpperCase();
-
-    if (!name) {
-      setJoinError('Введите имя участника.');
-      return;
-    }
 
     if (code !== session.joinCode) {
       setJoinError('Неверный код подключения.');
@@ -382,13 +375,12 @@ export default function App() {
 
     const nextParticipant: Participant = {
       id: createId('participant'),
-      name,
+      name: `Анонимный ${participants.length + 1}`,
     };
 
     try {
       await saveParticipant(session.id, nextParticipant);
       setActiveParticipantId(nextParticipant.id);
-      setParticipantNameDraft('');
       setJoinCodeDraft('');
       setJoinError('');
     } catch (error) {
@@ -835,7 +827,6 @@ export default function App() {
           activeParticipant={activeParticipant}
           joinCode={session.joinCode}
           joinCodeDraft={joinCodeDraft}
-          participantNameDraft={participantNameDraft}
           joinError={joinError}
           liveModule={liveSlide?.type ?? null}
           mcOptions={liveMcOptions}
@@ -882,7 +873,6 @@ export default function App() {
           }}
           onAddParticipant={addParticipant}
           onJoinCodeDraftChange={setJoinCodeDraft}
-          onParticipantNameDraftChange={setParticipantNameDraft}
           onJoinSession={joinParticipant}
           onScreenChange={setScreen}
         />
