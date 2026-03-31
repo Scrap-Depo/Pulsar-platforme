@@ -18,6 +18,7 @@ type ParticipantPageProps = {
   joinCode: string;
   joinCodeDraft: string;
   joinError: string;
+  joinPending: boolean;
   liveModule: LiveModule;
   mcQuestion: string;
   mcOptions: MultipleChoiceOption[];
@@ -59,6 +60,7 @@ export default function ParticipantPage({
   joinCode,
   joinCodeDraft,
   joinError,
+  joinPending,
   liveModule,
   mcQuestion,
   mcOptions,
@@ -168,7 +170,9 @@ export default function ParticipantPage({
               </label>
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
               <div className="button-row">
-                <Button onClick={onJoinSession}>Присоединиться</Button>
+                <Button onClick={onJoinSession}>
+                  {joinPending ? 'Подключаем...' : 'Присоединиться'}
+                </Button>
                 <Button variant="ghost" onClick={() => onScreenChange('admin')}>
                   Назад в админку
                 </Button>

@@ -148,6 +148,7 @@ export default function App() {
   const [activeParticipantId, setActiveParticipantId] = useState<string | null>(initialState.activeParticipantId);
   const [joinCodeDraft, setJoinCodeDraft] = useState(launchState.joinCodeDraft);
   const [joinError, setJoinError] = useState('');
+  const [joinPending, setJoinPending] = useState(false);
   const [isFrozen, setIsFrozen] = useState(initialState.isFrozen);
   const [mcParticipantVote, setMcParticipantVote] = useState<number | null>(null);
   const [responses, setResponses] = useState<SessionResponse[]>(initialState.responses);
@@ -379,12 +380,18 @@ export default function App() {
     };
 
     try {
-      await saveParticipant(session.id, nextParticipant);
+      setJoinPending(true);
+      setParticipants((current) => [...current, nextParticipant]);
       setActiveParticipantId(nextParticipant.id);
+      await saveParticipant(session.id, nextParticipant);
       setJoinCodeDraft('');
       setJoinError('');
     } catch (error) {
+      setParticipants((current) => current.filter((participant) => participant.id !== nextParticipant.id));
+      setActiveParticipantId((current) => (current === nextParticipant.id ? null : current));
       setJoinError(getFirebaseErrorMessage(error, 'Не удалось зарегистрировать участника в Firestore.'));
+    } finally {
+      setJoinPending(false);
     }
   }
 
@@ -828,6 +835,7 @@ export default function App() {
           joinCode={session.joinCode}
           joinCodeDraft={joinCodeDraft}
           joinError={joinError}
+          joinPending={joinPending}
           liveModule={liveSlide?.type ?? null}
           mcOptions={liveMcOptions}
           mcQuestion={liveMultipleChoiceSlide?.title ?? 'Опрос'}
