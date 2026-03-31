@@ -1,0 +1,61 @@
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import { Session } from '../types/common';
+
+type FirestoreSession = Session & {
+  ownerUid: string;
+  updatedAt: string;
+};
+
+function getSessionRef(sessionId: string) {
+  return doc(db, 'sessions', sessionId);
+}
+
+export async function ensureSessionDocument(session: Session, ownerUid: string) {
+  const sessionRef = getSessionRef(session.id);
+  const snapshot = await getDoc(sessionRef);
+
+  if (snapshot.exists()) {
+    return;
+  }
+
+  const payload: FirestoreSession = {
+    ...session,
+    ownerUid,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setDoc(sessionRef, payload);
+}
+
+export function subscribeToSession(
+  sessionId: string,
+  onData: (session: Session) => void,
+  onError: (error: Error) => void,
+) {
+  return onSnapshot(
+    getSessionRef(sessionId),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        return;
+      }
+
+      const data = snapshot.data() as FirestoreSession;
+      const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
+      onData(session);
+    },
+    (error) => {
+      onError(error);
+    },
+  );
+}
+
+export async function saveSessionDocument(session: Session, ownerUid: string) {
+  const payload: FirestoreSession = {
+    ...session,
+    ownerUid,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setDoc(getSessionRef(session.id), payload);
+}
