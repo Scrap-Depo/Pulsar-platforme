@@ -13,6 +13,7 @@ type ParticipantPageProps = {
   appTitle: string;
   activeParticipant: Participant | null;
   sessionError: string;
+  joinStatus: string;
   joinCode: string;
   joinCodeDraft: string;
   joinError: string;
@@ -53,6 +54,7 @@ export default function ParticipantPage({
   appTitle,
   activeParticipant,
   sessionError,
+  joinStatus,
   joinCode,
   joinCodeDraft,
   joinError,
@@ -183,6 +185,7 @@ export default function ParticipantPage({
                   />
                 </label>
               )}
+              {joinStatus && !joinError && <p style={{ margin: 0, color: '#cbd5e1' }}>{joinStatus}</p>}
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
               <div className="button-row">
                 <Button onClick={onJoinSession} disabled={joinPending || isStaleCode}>

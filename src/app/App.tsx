@@ -153,6 +153,15 @@ function getFirebaseErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  return await Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
 export default function App() {
   const [initialState] = useState(loadPersistedAppState);
   const [launchState] = useState(readLaunchState);
@@ -162,6 +171,7 @@ export default function App() {
   const [activeParticipantId, setActiveParticipantId] = useState<string | null>(initialState.activeParticipantId);
   const [joinCodeDraft, setJoinCodeDraft] = useState(launchState.joinCodeDraft);
   const [joinError, setJoinError] = useState('');
+  const [joinStatus, setJoinStatus] = useState('');
   const [joinPending, setJoinPending] = useState(false);
   const [isFrozen, setIsFrozen] = useState(initialState.isFrozen);
   const [mcParticipantVote, setMcParticipantVote] = useState<number | null>(null);
@@ -362,6 +372,8 @@ export default function App() {
 
   async function joinParticipant() {
     const code = joinCodeDraft.trim().toUpperCase();
+    setJoinError('');
+    setJoinStatus('');
 
     if (!code) {
       setJoinError('Код подключения не найден.');
@@ -372,7 +384,12 @@ export default function App() {
 
     if (!sessionSynced) {
       try {
-        const fetchedSession = await getSessionByJoinCode(code);
+        setJoinStatus('Ищем сессию в Firebase...');
+        const fetchedSession = await withTimeout(
+          getSessionByJoinCode(code),
+          8000,
+          'Поиск сессии в Firebase занял слишком много времени.',
+        );
 
         if (!fetchedSession) {
           setJoinError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');
@@ -384,6 +401,7 @@ export default function App() {
         setSessionReady(true);
         setSessionSynced(true);
         setSessionError('');
+        setJoinStatus('Сессия найдена. Подключаем участника...');
       } catch (error) {
         setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
         return;
@@ -402,10 +420,16 @@ export default function App() {
 
     try {
       setJoinPending(true);
+      setJoinStatus('Регистрируем участника в Firebase...');
       setActiveParticipantId(nextParticipant.id);
-      await saveParticipant(resolvedSession.id, nextParticipant);
+      await withTimeout(
+        saveParticipant(resolvedSession.id, nextParticipant),
+        8000,
+        'Запись участника в Firebase не завершилась вовремя.',
+      );
       setJoinCodeDraft('');
       setJoinError('');
+      setJoinStatus('');
     } catch (error) {
       setActiveParticipantId((current) => (current === nextParticipant.id ? null : current));
       setJoinError(getFirebaseErrorMessage(error, 'Не удалось зарегистрировать участника в Firestore.'));
@@ -997,6 +1021,7 @@ export default function App() {
           appTitle={APP_TITLE}
           activeParticipant={activeParticipant}
           sessionError={sessionError}
+          joinStatus={joinStatus}
           joinCode={session.joinCode}
           joinCodeDraft={joinCodeDraft}
           joinError={joinError}
