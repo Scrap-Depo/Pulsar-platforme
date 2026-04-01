@@ -22,7 +22,13 @@ import { mergeParticipantWord } from '../features/word-cloud/model/utils';
 import { PulseDistribution } from '../features/pulse/model/types';
 import { createId } from '../shared/lib/ids';
 import { auth } from '../shared/lib/firebase';
-import { ensureSessionDocument, saveSessionDocument, subscribeToSession, updateSessionDocument } from '../shared/lib/firestoreSessions';
+import {
+  ensureSessionDocument,
+  saveSessionDocument,
+  subscribeToSession,
+  subscribeToSessionByJoinCode,
+  updateSessionDocument,
+} from '../shared/lib/firestoreSessions';
 import { saveParticipant, subscribeToParticipants } from '../shared/lib/firestoreParticipants';
 import { saveResponse, subscribeToResponses } from '../shared/lib/firestoreResponses';
 
@@ -470,6 +476,7 @@ export default function App() {
     const ownerUid = authUid;
     let isActive = true;
     setSessionReady(false);
+    setSessionSynced(false);
 
     async function setupSessionSync() {
       try {
@@ -481,29 +488,51 @@ export default function App() {
           }
         }
 
-        const unsubscribe = subscribeToSession(
-          session.id,
-          (nextSession) => {
-            if (!isActive) {
-              return;
-            }
+        const handleSessionData = (nextSession: Session) => {
+          if (!isActive) {
+            return;
+          }
 
-            skipNextAdminSessionSaveRef.current = true;
-            setSession(nextSession);
-            setSessionReady(true);
-            setSessionSynced(true);
-            setSessionError('');
-            setJoinError('');
-          },
-          (error) => {
-            if (!isActive) {
-              return;
-            }
+          skipNextAdminSessionSaveRef.current = true;
+          setSession(nextSession);
+          setSessionReady(true);
+          setSessionSynced(true);
+          setSessionError('');
+          setJoinError('');
+        };
 
-            setSessionSynced(false);
-            setSessionError(getFirebaseErrorMessage(error, 'Не удалось получить живую сессию из Firestore.'));
-          },
-        );
+        const handleSessionError = (error: Error) => {
+          if (!isActive) {
+            return;
+          }
+
+          setSessionSynced(false);
+          setSessionError(getFirebaseErrorMessage(error, 'Не удалось получить живую сессию из Firestore.'));
+        };
+
+        const participantJoinCode = joinCodeDraft.trim().toUpperCase();
+        const shouldResolveByJoinCode = screen === 'participant' && !!participantJoinCode;
+
+        const unsubscribe = shouldResolveByJoinCode
+          ? subscribeToSessionByJoinCode(
+              participantJoinCode,
+              handleSessionData,
+              () => {
+                if (!isActive) {
+                  return;
+                }
+
+                setSessionReady(false);
+                setSessionSynced(false);
+                setSessionError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');
+              },
+              handleSessionError,
+            )
+          : subscribeToSession(
+              session.id,
+              handleSessionData,
+              handleSessionError,
+            );
 
         return unsubscribe;
       } catch (error) {
@@ -533,7 +562,7 @@ export default function App() {
       isActive = false;
       cleanup?.();
     };
-  }, [authUid, screen, session.id]);
+  }, [authUid, screen, session.id, joinCodeDraft]);
 
   useEffect(() => {
     if (!authUid || !sessionReady || screen !== 'admin') {

@@ -1,4 +1,4 @@
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, limit, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { Session } from '../types/common';
 
@@ -9,6 +9,10 @@ type FirestoreSession = Session & {
 
 function getSessionRef(sessionId: string) {
   return doc(db, 'sessions', sessionId);
+}
+
+function getSessionsCollection() {
+  return collection(db, 'sessions');
 }
 
 export async function ensureSessionDocument(session: Session, ownerUid: string) {
@@ -35,6 +39,32 @@ export function subscribeToSession(
       }
 
       const data = snapshot.data() as FirestoreSession;
+      const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
+      onData(session);
+    },
+    (error) => {
+      onError(error);
+    },
+  );
+}
+
+export function subscribeToSessionByJoinCode(
+  joinCode: string,
+  onData: (session: Session) => void,
+  onMissing: () => void,
+  onError: (error: Error) => void,
+) {
+  const normalizedCode = joinCode.trim().toUpperCase();
+
+  return onSnapshot(
+    query(getSessionsCollection(), where('joinCode', '==', normalizedCode), limit(1)),
+    (snapshot) => {
+      if (snapshot.empty) {
+        onMissing();
+        return;
+      }
+
+      const data = snapshot.docs[0].data() as FirestoreSession;
       const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
       onData(session);
     },
