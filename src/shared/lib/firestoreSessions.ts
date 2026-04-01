@@ -1,4 +1,4 @@
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { Session } from '../types/common';
 
@@ -52,4 +52,16 @@ export async function saveSessionDocument(session: Session, ownerUid: string) {
   };
 
   await setDoc(getSessionRef(session.id), payload, { merge: true });
+}
+
+export async function updateSessionDocument(
+  sessionId: string,
+  patch: Partial<Session>,
+  ownerUid: string,
+) {
+  await updateDoc(getSessionRef(sessionId), {
+    ...patch,
+    ownerUid,
+    updatedAt: new Date().toISOString(),
+  });
 }

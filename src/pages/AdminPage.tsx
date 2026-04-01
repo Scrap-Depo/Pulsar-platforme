@@ -91,6 +91,7 @@ type AdminPageProps = {
   onCloudParticipantWordChange: (value: string) => void;
   onCloudUseAIChange: (value: boolean) => void;
   onSessionChange: (session: Session) => void;
+  onPublishLiveSlide: (slideId: string) => void;
   onLaunchAudienceScreen: () => void;
 };
 
@@ -162,6 +163,7 @@ export default function AdminPage({
   onCloudParticipantWordChange,
   onCloudUseAIChange,
   onSessionChange,
+  onPublishLiveSlide,
   onLaunchAudienceScreen,
 }: AdminPageProps) {
   const [isCreateSlideModalOpen, setIsCreateSlideModalOpen] = useState(false);
@@ -603,9 +605,8 @@ export default function AdminPage({
     onSessionChange({
       ...session,
       currentSlideId: targetSlide.id,
-      liveSlideId: targetSlide.id,
-      status: 'live',
     });
+    onPublishLiveSlide(targetSlide.id);
   }
 
   function renderSpeakerSlidePreview(

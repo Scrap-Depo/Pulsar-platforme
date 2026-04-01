@@ -22,7 +22,7 @@ import { mergeParticipantWord } from '../features/word-cloud/model/utils';
 import { PulseDistribution } from '../features/pulse/model/types';
 import { createId } from '../shared/lib/ids';
 import { auth } from '../shared/lib/firebase';
-import { ensureSessionDocument, saveSessionDocument, subscribeToSession } from '../shared/lib/firestoreSessions';
+import { ensureSessionDocument, saveSessionDocument, subscribeToSession, updateSessionDocument } from '../shared/lib/firestoreSessions';
 import { saveParticipant, subscribeToParticipants } from '../shared/lib/firestoreParticipants';
 import { saveResponse, subscribeToResponses } from '../shared/lib/firestoreResponses';
 
@@ -109,6 +109,13 @@ function loadPersistedAppState(): PersistedAppState {
 
     if (!parsed.session || !Array.isArray(parsed.session.slides)) {
       return fallback;
+    }
+
+    if (launch.screen === 'participant' || launch.screen === 'projector') {
+      return {
+        ...fallback,
+        screen: launch.screen,
+      };
     }
 
     return {
@@ -388,17 +395,13 @@ export default function App() {
   }
 
   async function launchAudienceScreen() {
-    const nextSession: Session = {
-      ...session,
-      liveSlideId: currentSlide?.id ?? session.liveSlideId,
-      status: currentSlide ? 'live' : session.status,
-    };
-
-    setSession(nextSession);
-
-    if (authUid) {
+    if (authUid && currentSlide) {
       try {
-        await saveSessionDocument(nextSession, authUid);
+        await updateSessionDocument(
+          session.id,
+          { liveSlideId: currentSlide.id, status: 'live' },
+          authUid,
+        );
       } catch (error) {
         setSessionError(getFirebaseErrorMessage(error, 'Не удалось запустить трансляцию в Firestore.'));
         return;
@@ -406,6 +409,29 @@ export default function App() {
     }
 
     setScreen('projector');
+  }
+
+  async function publishLiveSlide(slideId: string) {
+    setSession((currentSession) => ({
+      ...currentSession,
+      liveSlideId: slideId,
+      status: 'live',
+    }));
+
+    if (!authUid) {
+      return;
+    }
+
+    try {
+      await updateSessionDocument(
+        session.id,
+        { liveSlideId: slideId, status: 'live' },
+        authUid,
+      );
+      setSessionError('');
+    } catch (error) {
+      setSessionError(getFirebaseErrorMessage(error, 'Не удалось опубликовать live-слайд в Firestore.'));
+    }
   }
 
   useEffect(() => {
@@ -439,14 +465,13 @@ export default function App() {
 
     const ownerUid = authUid;
     let isActive = true;
-    setSessionReady(true);
+    setSessionReady(false);
 
     async function setupSessionSync() {
       try {
         if (screen === 'admin') {
           await ensureSessionDocument(session, ownerUid);
           if (isActive) {
-            setSessionReady(true);
             setSessionSynced(false);
             setSessionError('');
           }
@@ -578,6 +603,17 @@ export default function App() {
 
     return unsubscribe;
   }, [session.id, sessionReady]);
+
+  useEffect(() => {
+    if (screen !== 'participant') {
+      return;
+    }
+
+    setLikedIds([]);
+    setFocusedAnswerId(null);
+    setEditingAnswerId(null);
+    setDraftAnswerText('');
+  }, [screen, activeParticipantId, session.liveSlideId]);
 
   useEffect(() => {
     if (!activeParticipantId) {
@@ -875,6 +911,7 @@ export default function App() {
             );
           }}
           onSessionChange={setSession}
+          onPublishLiveSlide={publishLiveSlide}
           onLaunchAudienceScreen={launchAudienceScreen}
         />
       )}
