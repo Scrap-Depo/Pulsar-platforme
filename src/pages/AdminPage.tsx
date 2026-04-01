@@ -965,16 +965,6 @@ export default function AdminPage({
             {activeModuleEditor}
           </div>
           <aside className="admin-preview-pane">
-            <div className="admin-preview-card admin-preview-card-projector card">
-              <div className="admin-preview-header">
-                <p className="muted" style={{ margin: 0 }}>Предпросмотр</p>
-                <strong>Экран в эфире</strong>
-              </div>
-              <div className="admin-preview-body admin-preview-body-projector">
-                {projectorPreview}
-              </div>
-            </div>
-
             <div className="admin-preview-card-phone">
               <div className="admin-preview-header">
                 <p className="muted" style={{ margin: 0 }}>Предпросмотр</p>
