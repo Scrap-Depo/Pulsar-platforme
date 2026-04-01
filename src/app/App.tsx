@@ -483,6 +483,7 @@ export default function App() {
         if (screen === 'admin') {
           await ensureSessionDocument(session, ownerUid);
           if (isActive) {
+            setSessionReady(true);
             setSessionSynced(false);
             setSessionError('');
           }
