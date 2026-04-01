@@ -1304,6 +1304,7 @@ a {
 
 .admin-preview-card-projector {
   padding: 16px;
+  min-height: 760px;
 }
 
 .admin-preview-card-phone {
@@ -1328,7 +1329,8 @@ a {
 }
 
 .admin-preview-body-projector {
-  max-height: 720px;
+  max-height: 860px;
+  min-height: 700px;
   padding: 4px;
 }
 

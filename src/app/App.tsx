@@ -476,14 +476,14 @@ export default function App() {
   }, [authUid, session.id]);
 
   useEffect(() => {
-    if (!authUid || !sessionReady) {
+    if (!authUid || !sessionReady || screen !== 'admin') {
       return;
     }
 
     saveSessionDocument(session, authUid).catch((error) => {
       setSessionError(getFirebaseErrorMessage(error, 'Не удалось сохранить изменения сессии в Firestore.'));
     });
-  }, [session, authUid, sessionReady]);
+  }, [session, authUid, sessionReady, screen]);
 
   useEffect(() => {
     if (!sessionReady) {
