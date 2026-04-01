@@ -384,38 +384,47 @@ export default function App() {
     let resolvedSession = session;
 
     if (!sessionSynced) {
+      let fetchedSession: Session | null = null;
+
       try {
         setJoinStatus('Ищем сессию в Firebase...');
-        let fetchedSession = await withTimeout(
+        fetchedSession = await withTimeout(
           getSessionByJoinCode(code),
           8000,
           'Поиск сессии в Firebase занял слишком много времени.',
         );
+      } catch (error) {
+        if (code !== 'PULSAR42') {
+          setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
+          return;
+        }
+      }
 
-        if (!fetchedSession && code === 'PULSAR42') {
+      if (!fetchedSession && code === 'PULSAR42') {
+        try {
           setJoinStatus('Пробуем открыть сессию напрямую...');
           fetchedSession = await withTimeout(
             getSessionById('session-q1'),
             8000,
             'Прямое чтение сессии из Firebase заняло слишком много времени.',
           );
-        }
-
-        if (!fetchedSession) {
-          setJoinError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');
+        } catch (error) {
+          setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
           return;
         }
+      }
 
-        resolvedSession = fetchedSession;
-        setSession(fetchedSession);
-        setSessionReady(true);
-        setSessionSynced(true);
-        setSessionError('');
-        setJoinStatus('Сессия найдена. Подключаем участника...');
-      } catch (error) {
-        setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
+      if (!fetchedSession) {
+        setJoinError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');
         return;
       }
+
+      resolvedSession = fetchedSession;
+      setSession(fetchedSession);
+      setSessionReady(true);
+      setSessionSynced(true);
+      setSessionError('');
+      setJoinStatus('Сессия найдена. Подключаем участника...');
     }
 
     if (code !== resolvedSession.joinCode) {
