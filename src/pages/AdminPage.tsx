@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, ChevronLeft, ChevronRight, Cloud, Copy, LayoutDashboard, Link2, MessageCircleMore, MonitorPlay, RefreshCw, SkipBack, SkipForward, Waves } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, Cloud, Copy, LayoutDashboard, Link2, MessageCircleMore, RefreshCw, SkipBack, SkipForward, Waves } from 'lucide-react';
 import MultipleChoiceAdmin from '../features/multiple-choice/components/MultipleChoiceAdmin';
 import MultipleChoiceParticipant from '../features/multiple-choice/components/MultipleChoiceParticipant';
 import MultipleChoiceProjector from '../features/multiple-choice/components/MultipleChoiceProjector';
@@ -93,7 +93,6 @@ type AdminPageProps = {
   onSessionChange: (session: Session) => void;
   onSessionPatch: (patch: Partial<Session>) => void;
   onPublishLiveSlide: (slideId: string) => void;
-  onLaunchAudienceScreen: () => void;
 };
 
 export default function AdminPage({
@@ -166,7 +165,6 @@ export default function AdminPage({
   onSessionChange,
   onSessionPatch,
   onPublishLiveSlide,
-  onLaunchAudienceScreen,
 }: AdminPageProps) {
   const [isCreateSlideModalOpen, setIsCreateSlideModalOpen] = useState(false);
   const [qrVersion, setQrVersion] = useState(0);
@@ -800,12 +798,6 @@ export default function AdminPage({
               Редактируйте текущий слайд, проверяйте preview и выводите нужный экран в эфир.
             </p>
             <div className="button-row" style={{ marginTop: 12 }}>
-              <Button
-                icon={<MonitorPlay size={18} />}
-                onClick={onLaunchAudienceScreen}
-              >
-                Запустить трансляцию
-              </Button>
               <Button icon={<LayoutDashboard size={18} />} variant="ghost" onClick={onFreezeToggle}>
                 {isFrozen ? 'Снять паузу' : 'Заморозить экран'}
               </Button>
@@ -976,7 +968,7 @@ export default function AdminPage({
             <div className="admin-preview-card admin-preview-card-projector card">
               <div className="admin-preview-header">
                 <p className="muted" style={{ margin: 0 }}>Предпросмотр</p>
-                <strong>Проектор</strong>
+                <strong>Экран в эфире</strong>
               </div>
               <div className="admin-preview-body admin-preview-body-projector">
                 {projectorPreview}

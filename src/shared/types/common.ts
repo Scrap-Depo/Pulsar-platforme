@@ -1,7 +1,7 @@
 import { MultipleChoiceOption } from '../../features/multiple-choice/model/types';
 import { PulseProjectorView } from '../../features/pulse/model/types';
 
-export type AppScreen = 'admin' | 'participant' | 'projector';
+export type AppScreen = 'admin' | 'participant';
 
 export type SlideType =
   | 'multiple-choice'

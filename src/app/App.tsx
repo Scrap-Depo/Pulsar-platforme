@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import AdminPage from '../pages/AdminPage';
 import ParticipantPage from '../pages/ParticipantPage';
-import ProjectorPage from '../pages/ProjectorPage';
 import {
   AppScreen,
   OpenAnswersResponse,
@@ -71,13 +70,6 @@ function readLaunchState() {
     };
   }
 
-  if (path.includes('/projector')) {
-    return {
-      screen: 'projector' as AppScreen,
-      joinCodeDraft: code,
-    };
-  }
-
   return {
     screen: null as AppScreen | null,
     joinCodeDraft: code,
@@ -118,7 +110,7 @@ function loadPersistedAppState(): PersistedAppState {
       return fallback;
     }
 
-    if (launch.screen === 'participant' || launch.screen === 'projector') {
+    if (launch.screen === 'participant') {
       return {
         ...fallback,
         screen: launch.screen,
@@ -165,7 +157,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
 export default function App() {
   const [initialState] = useState(loadPersistedAppState);
   const [launchState] = useState(readLaunchState);
-  const [screen, setScreen] = useState<AppScreen>(initialState.screen);
+  const [screen] = useState<AppScreen>(initialState.screen);
   const [session, setSession] = useState<Session>(initialState.session);
   const [participants, setParticipants] = useState<Participant[]>(initialState.participants);
   const [activeParticipantId, setActiveParticipantId] = useState<string | null>(initialState.activeParticipantId);
@@ -438,31 +430,6 @@ export default function App() {
     }
   }
 
-  async function launchAudienceScreen() {
-    if (currentSlide) {
-      setSession((currentSession) => ({
-        ...currentSession,
-        liveSlideId: currentSlide.id,
-        status: 'live',
-      }));
-    }
-
-    if (authUid && currentSlide) {
-      try {
-        await updateSessionDocument(
-          session.id,
-          { liveSlideId: currentSlide.id, status: 'live' },
-          authUid,
-        );
-      } catch (error) {
-        setSessionError(getFirebaseErrorMessage(error, 'Не удалось запустить трансляцию в Firestore.'));
-        return;
-      }
-    }
-
-    setScreen('projector');
-  }
-
   async function publishLiveSlide(slideId: string) {
     setSession((currentSession) => ({
       ...currentSession,
@@ -535,7 +502,7 @@ export default function App() {
 
     const ownerUid = authUid;
     let isActive = true;
-    setSessionReady(screen !== 'projector');
+    setSessionReady(true);
     setSessionSynced(false);
 
     async function setupSessionSync() {
@@ -829,7 +796,7 @@ export default function App() {
     );
   }
 
-  if (screen === 'projector' && !sessionReady && !sessionError) {
+  if (!sessionReady && !sessionError) {
     return (
       <div className="page-shell">
         <div className="page-content" style={{ padding: 32 }}>
@@ -1013,7 +980,6 @@ export default function App() {
           onSessionChange={setSession}
           onSessionPatch={patchSession}
           onPublishLiveSlide={publishLiveSlide}
-          onLaunchAudienceScreen={launchAudienceScreen}
         />
       )}
       {screen === 'participant' && (
@@ -1068,35 +1034,6 @@ export default function App() {
           onJoinCodeDraftChange={setJoinCodeDraft}
           onJoinSession={joinParticipant}
           onRefreshJoinLink={() => window.location.reload()}
-        />
-      )}
-      {screen === 'projector' && (
-        <ProjectorPage
-          appTitle={APP_TITLE}
-          liveModule={liveSlide?.type ?? null}
-          isFrozen={isFrozen}
-          mcQuestion={liveMultipleChoiceSlide?.title ?? 'Опрос'}
-          mcOptions={liveMcOptions}
-          mcVisualization={liveMultipleChoiceSlide?.visualization ?? 'bar'}
-          mcResultDisplay={liveMultipleChoiceSlide?.resultDisplay ?? 'both'}
-          openQuestion={liveOpenAnswersSlide?.title ?? 'Открытый вопрос'}
-          openAnswers={liveOpenAnswers}
-          focusedAnswerId={focusedAnswerId}
-          openVisualization={liveOpenAnswersSlide?.visualization ?? 'cards'}
-          pulseTitle={livePulseSlide?.title ?? 'Пульс аудитории'}
-          pulseMinLabel={livePulseSlide?.minLabel ?? 'Скучно'}
-          pulseMaxLabel={livePulseSlide?.maxLabel ?? 'Огонь!'}
-          pulseParticipantValue={pulseParticipantValue}
-          pulseProjectorView={livePulseSlide?.projectorView ?? 'histogram'}
-          pulseDistribution={livePulseDistribution}
-          pulseVisualization={livePulseSlide?.visualization ?? 'bars'}
-          pulseMetricDisplay={livePulseSlide?.metricDisplay ?? 'both'}
-          cloudTitle={liveWordCloudSlide?.title ?? 'Облако слов'}
-          cloudWords={liveCloudWords}
-          cloudParticipantWord={cloudParticipantWord}
-          cloudVisualization={liveWordCloudSlide?.visualization ?? 'cloud'}
-          onFocusedAnswerChange={setFocusedAnswerId}
-          onReturnToAdmin={() => setScreen('admin')}
         />
       )}
     </>
