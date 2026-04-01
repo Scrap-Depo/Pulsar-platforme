@@ -173,7 +173,6 @@ export default function App() {
   const [joinCodeDraft, setJoinCodeDraft] = useState(launchState.joinCodeDraft);
   const [joinError, setJoinError] = useState('');
   const [joinStatus, setJoinStatus] = useState('');
-  const [diagnosticStatus, setDiagnosticStatus] = useState('');
   const [joinPending, setJoinPending] = useState(false);
   const [isFrozen, setIsFrozen] = useState(initialState.isFrozen);
   const [mcParticipantVote, setMcParticipantVote] = useState<number | null>(null);
@@ -197,9 +196,6 @@ export default function App() {
   const [responsesReady, setResponsesReady] = useState(false);
   const [responsesError, setResponsesError] = useState('');
   const skipNextAdminSessionSaveRef = useRef(false);
-  const firebaseProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '';
-  const firebaseAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '';
-  const firebaseApiKeyTail = (import.meta.env.VITE_FIREBASE_API_KEY ?? '').slice(-8);
 
   const currentSlide = findSlideById(session.slides, session.currentSlideId);
   const liveSlide = findSlideById(session.slides, session.liveSlideId);
@@ -455,46 +451,6 @@ export default function App() {
       setJoinError(getFirebaseErrorMessage(error, 'Не удалось зарегистрировать участника в Firestore.'));
     } finally {
       setJoinPending(false);
-    }
-  }
-
-  async function runReadDiagnostic() {
-    setDiagnosticStatus('Проверяем чтение sessions/session-q1...');
-
-    try {
-      const directSession = await withTimeout(
-        getSessionById('session-q1'),
-        8000,
-        'Прямое чтение session-q1 заняло слишком много времени.',
-      );
-
-      if (!directSession) {
-        setDiagnosticStatus('Чтение: session-q1 не найден.');
-        return;
-      }
-
-      setDiagnosticStatus(`Чтение ок: ${directSession.id} / ${directSession.joinCode}`);
-    } catch (error) {
-      setDiagnosticStatus(getFirebaseErrorMessage(error, 'Чтение не удалось.'));
-    }
-  }
-
-  async function runWriteDiagnostic() {
-    setDiagnosticStatus('Проверяем запись test participant...');
-
-    try {
-      await withTimeout(
-        saveParticipant('session-q1', {
-          id: `diagnostic-${Date.now()}`,
-          name: 'Diagnostic participant',
-        }),
-        8000,
-        'Запись test participant заняла слишком много времени.',
-      );
-
-      setDiagnosticStatus('Запись ок: test participant сохранен.');
-    } catch (error) {
-      setDiagnosticStatus(getFirebaseErrorMessage(error, 'Запись не удалась.'));
     }
   }
 
@@ -1080,10 +1036,6 @@ export default function App() {
         <ParticipantPage
           appTitle={APP_TITLE}
           activeParticipant={activeParticipant}
-          firebaseApiKeyTail={firebaseApiKeyTail}
-          firebaseProjectId={firebaseProjectId}
-          firebaseAuthDomain={firebaseAuthDomain}
-          diagnosticStatus={diagnosticStatus}
           sessionError={sessionError}
           joinStatus={joinStatus}
           joinCode={session.joinCode}
@@ -1131,8 +1083,6 @@ export default function App() {
           }}
           onJoinCodeDraftChange={setJoinCodeDraft}
           onJoinSession={joinParticipant}
-          onRunReadDiagnostic={runReadDiagnostic}
-          onRunWriteDiagnostic={runWriteDiagnostic}
           onRefreshJoinLink={() => window.location.reload()}
         />
       )}
