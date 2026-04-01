@@ -473,7 +473,7 @@ export default function App() {
       isActive = false;
       cleanup?.();
     };
-  }, [authUid]);
+  }, [authUid, session.id]);
 
   useEffect(() => {
     if (!authUid || !sessionReady) {
