@@ -24,6 +24,7 @@ import { createId } from '../shared/lib/ids';
 import { auth } from '../shared/lib/firebase';
 import {
   ensureSessionDocument,
+  getSessionByJoinCode,
   saveSessionDocument,
   subscribeToSession,
   subscribeToSessionByJoinCode,
@@ -367,12 +368,29 @@ export default function App() {
       return;
     }
 
+    let resolvedSession = session;
+
     if (!sessionSynced) {
-      setJoinError('Живая сессия еще подключается. Попробуйте через пару секунд.');
-      return;
+      try {
+        const fetchedSession = await getSessionByJoinCode(code);
+
+        if (!fetchedSession) {
+          setJoinError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');
+          return;
+        }
+
+        resolvedSession = fetchedSession;
+        setSession(fetchedSession);
+        setSessionReady(true);
+        setSessionSynced(true);
+        setSessionError('');
+      } catch (error) {
+        setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
+        return;
+      }
     }
 
-    if (sessionSynced && code !== session.joinCode) {
+    if (code !== resolvedSession.joinCode) {
       setJoinError('Неверный код подключения.');
       return;
     }
@@ -385,7 +403,7 @@ export default function App() {
     try {
       setJoinPending(true);
       setActiveParticipantId(nextParticipant.id);
-      await saveParticipant(session.id, nextParticipant);
+      await saveParticipant(resolvedSession.id, nextParticipant);
       setJoinCodeDraft('');
       setJoinError('');
     } catch (error) {

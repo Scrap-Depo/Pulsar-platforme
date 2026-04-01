@@ -1,4 +1,4 @@
-import { collection, doc, limit, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { Session } from '../types/common';
 
@@ -72,6 +72,21 @@ export function subscribeToSessionByJoinCode(
       onError(error);
     },
   );
+}
+
+export async function getSessionByJoinCode(joinCode: string) {
+  const normalizedCode = joinCode.trim().toUpperCase();
+  const snapshot = await getDocs(
+    query(getSessionsCollection(), where('joinCode', '==', normalizedCode), limit(1)),
+  );
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const data = snapshot.docs[0].data() as FirestoreSession;
+  const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
+  return session;
 }
 
 export async function saveSessionDocument(session: Session, ownerUid: string) {
