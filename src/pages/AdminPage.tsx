@@ -167,6 +167,11 @@ export default function AdminPage({
   const [isCreateSlideModalOpen, setIsCreateSlideModalOpen] = useState(false);
   const [qrVersion, setQrVersion] = useState(0);
   const [copiedState, setCopiedState] = useState<'idle' | 'done'>('idle');
+
+  function createJoinCode() {
+    return `PULSAR${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+
   const joinLink =
     typeof window === 'undefined'
       ? `https://pulsar.local/join/${session.joinCode}`
@@ -541,6 +546,14 @@ export default function AdminPage({
     });
   }
 
+  function handleRefreshJoinAccess() {
+    onSessionChange({
+      ...session,
+      joinCode: createJoinCode(),
+    });
+    setQrVersion((value) => value + 1);
+  }
+
   function handleVisualizationChange(
     value: MultipleChoiceVisualization | OpenAnswersVisualization | PulseVisualization | WordCloudVisualization,
   ) {
@@ -819,8 +832,8 @@ export default function AdminPage({
               <div className="admin-session-qr">
                 <div className="admin-session-qr-actions">
                   <span className="admin-choice-icon"><Link2 size={18} /></span>
-                  <Button variant="ghost" onClick={() => setQrVersion((value) => value + 1)} icon={<RefreshCw size={14} />}>
-                    Обновить
+                  <Button variant="ghost" onClick={handleRefreshJoinAccess} icon={<RefreshCw size={14} />}>
+                    Новый код
                   </Button>
                 </div>
                 <img
@@ -857,6 +870,26 @@ export default function AdminPage({
               </div>
             </div>
             <div className="admin-speaker-stage">
+              {renderSpeakerSlidePreview(
+                presentationSlide,
+                'current',
+                'Текущий слайд',
+                presentationIndex >= 0 ? presentationIndex + 1 : undefined,
+              )}
+              <div className="admin-speaker-neighbors">
+                {renderSpeakerSlidePreview(
+                  previousPresentationSlide,
+                  'side',
+                  'Предыдущий',
+                  presentationIndex > 0 ? presentationIndex : undefined,
+                )}
+                {renderSpeakerSlidePreview(
+                  nextPresentationSlide,
+                  'side',
+                  'Следующий',
+                  presentationIndex >= 0 && presentationIndex < session.slides.length - 1 ? presentationIndex + 2 : undefined,
+                )}
+              </div>
               <div className="admin-speaker-nav">
                 <Button
                   variant="ghost"
@@ -889,26 +922,6 @@ export default function AdminPage({
                 >
                   В конец
                 </Button>
-              </div>
-              {renderSpeakerSlidePreview(
-                presentationSlide,
-                'current',
-                'Текущий слайд',
-                presentationIndex >= 0 ? presentationIndex + 1 : undefined,
-              )}
-              <div className="admin-speaker-neighbors">
-                {renderSpeakerSlidePreview(
-                  previousPresentationSlide,
-                  'side',
-                  'Предыдущий',
-                  presentationIndex > 0 ? presentationIndex : undefined,
-                )}
-                {renderSpeakerSlidePreview(
-                  nextPresentationSlide,
-                  'side',
-                  'Следующий',
-                  presentationIndex >= 0 && presentationIndex < session.slides.length - 1 ? presentationIndex + 2 : undefined,
-                )}
               </div>
             </div>
           </div>
