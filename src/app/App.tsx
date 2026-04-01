@@ -462,6 +462,24 @@ export default function App() {
     }
   }
 
+  async function patchSession(patch: Partial<Session>) {
+    setSession((currentSession) => ({
+      ...currentSession,
+      ...patch,
+    }));
+
+    if (!authUid) {
+      return;
+    }
+
+    try {
+      await updateSessionDocument(session.id, patch, authUid);
+      setSessionError('');
+    } catch (error) {
+      setSessionError(getFirebaseErrorMessage(error, 'Не удалось сохранить изменения сессии в Firestore.'));
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -969,6 +987,7 @@ export default function App() {
             );
           }}
           onSessionChange={setSession}
+          onSessionPatch={patchSession}
           onPublishLiveSlide={publishLiveSlide}
           onLaunchAudienceScreen={launchAudienceScreen}
         />

@@ -91,6 +91,7 @@ type AdminPageProps = {
   onCloudParticipantWordChange: (value: string) => void;
   onCloudUseAIChange: (value: boolean) => void;
   onSessionChange: (session: Session) => void;
+  onSessionPatch: (patch: Partial<Session>) => void;
   onPublishLiveSlide: (slideId: string) => void;
   onLaunchAudienceScreen: () => void;
 };
@@ -163,6 +164,7 @@ export default function AdminPage({
   onCloudParticipantWordChange,
   onCloudUseAIChange,
   onSessionChange,
+  onSessionPatch,
   onPublishLiveSlide,
   onLaunchAudienceScreen,
 }: AdminPageProps) {
@@ -535,22 +537,19 @@ export default function AdminPage({
   }
 
   function handleSessionTitleChange(value: string) {
-    onSessionChange({
-      ...session,
+    onSessionPatch({
       title: value,
     });
   }
 
   function handleJoinCodeChange(value: string) {
-    onSessionChange({
-      ...session,
+    onSessionPatch({
       joinCode: value.toUpperCase().replace(/\s+/g, ''),
     });
   }
 
   function handleRefreshJoinAccess() {
-    onSessionChange({
-      ...session,
+    onSessionPatch({
       joinCode: createJoinCode(),
     });
     setQrVersion((value) => value + 1);
