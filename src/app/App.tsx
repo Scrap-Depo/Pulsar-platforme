@@ -475,7 +475,7 @@ export default function App() {
 
     const ownerUid = authUid;
     let isActive = true;
-    setSessionReady(screen === 'admin');
+    setSessionReady(screen !== 'projector');
     setSessionSynced(false);
 
     async function setupSessionSync() {
@@ -769,7 +769,7 @@ export default function App() {
     );
   }
 
-  if (screen !== 'participant' && !sessionReady && !sessionError) {
+  if (screen === 'projector' && !sessionReady && !sessionError) {
     return (
       <div className="page-shell">
         <div className="page-content" style={{ padding: 32 }}>
