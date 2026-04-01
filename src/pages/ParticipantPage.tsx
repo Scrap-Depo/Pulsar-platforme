@@ -12,6 +12,10 @@ import { WordCloudItem } from '../features/word-cloud/model/types';
 type ParticipantPageProps = {
   appTitle: string;
   activeParticipant: Participant | null;
+  firebaseApiKeyTail: string;
+  firebaseProjectId: string;
+  firebaseAuthDomain: string;
+  diagnosticStatus: string;
   sessionError: string;
   joinStatus: string;
   joinCode: string;
@@ -47,12 +51,18 @@ type ParticipantPageProps = {
   onCloudParticipantWordChange: (value: string) => void;
   onJoinCodeDraftChange: (value: string) => void;
   onJoinSession: () => void;
+  onRunReadDiagnostic: () => void;
+  onRunWriteDiagnostic: () => void;
   onRefreshJoinLink: () => void;
 };
 
 export default function ParticipantPage({
   appTitle,
   activeParticipant,
+  firebaseApiKeyTail,
+  firebaseProjectId,
+  firebaseAuthDomain,
+  diagnosticStatus,
   sessionError,
   joinStatus,
   joinCode,
@@ -88,6 +98,8 @@ export default function ParticipantPage({
   onCloudParticipantWordChange,
   onJoinCodeDraftChange,
   onJoinSession,
+  onRunReadDiagnostic,
+  onRunWriteDiagnostic,
   onRefreshJoinLink,
 }: ParticipantPageProps) {
   const hasPrefilledJoinCode = Boolean(joinCodeDraft.trim());
@@ -187,9 +199,32 @@ export default function ParticipantPage({
               )}
               {joinStatus && !joinError && <p style={{ margin: 0, color: '#cbd5e1' }}>{joinStatus}</p>}
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 6,
+                  padding: 12,
+                  borderRadius: 14,
+                  border: '1px solid rgba(148, 163, 184, 0.18)',
+                  background: 'rgba(2, 6, 23, 0.22)',
+                  fontSize: 14,
+                  color: '#94a3b8',
+                }}
+              >
+                <span>Firebase project: {firebaseProjectId || 'n/a'}</span>
+                <span>Auth domain: {firebaseAuthDomain || 'n/a'}</span>
+                <span>API key tail: {firebaseApiKeyTail || 'n/a'}</span>
+                {diagnosticStatus ? <span style={{ color: '#cbd5e1' }}>{diagnosticStatus}</span> : null}
+              </div>
               <div className="button-row">
                 <Button onClick={onJoinSession} disabled={joinPending || isStaleCode}>
                   {joinPending ? 'Входим...' : 'Войти'}
+                </Button>
+                <Button variant="ghost" onClick={onRunReadDiagnostic}>
+                  Тест чтения
+                </Button>
+                <Button variant="ghost" onClick={onRunWriteDiagnostic}>
+                  Тест записи
                 </Button>
                 {isStaleCode && (
                   <Button variant="ghost" onClick={onRefreshJoinLink}>
