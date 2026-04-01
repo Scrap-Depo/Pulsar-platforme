@@ -359,25 +359,43 @@ a {
 }
 
 .admin-hero {
-  padding: 20px 24px;
+  padding: 22px 24px 24px;
   display: grid;
-  grid-template-columns: var(--grid-wide) var(--grid-narrow);
-  gap: 18px;
+  gap: 22px;
+}
+
+.admin-hero-top {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+  align-items: start;
 }
 
 .admin-hero-copy {
   display: grid;
   align-content: start;
-  gap: 2px;
+  gap: 4px;
+}
+
+.admin-hero .hero-title {
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.admin-hero .hero-text {
+  max-width: 34rem;
+  color: #cbd5e1;
 }
 
 .admin-session-inline {
-  margin-top: 18px;
-  padding: 14px;
+  margin-top: 0;
+  padding: 16px;
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) 168px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.5fr) 132px;
+  gap: 16px;
   align-items: start;
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.78)),
+    rgba(15, 23, 42, 0.78);
 }
 
 .admin-session-inline-form {
@@ -390,6 +408,7 @@ a {
   gap: 8px;
   justify-items: center;
   text-align: center;
+  align-content: start;
 }
 
 .admin-session-qr-actions {
@@ -401,11 +420,11 @@ a {
 }
 
 .admin-session-qr img {
-  width: 168px;
-  height: 168px;
-  border-radius: 18px;
+  width: 132px;
+  height: 132px;
+  border-radius: 16px;
   background: #fff;
-  padding: 8px;
+  padding: 7px;
 }
 
 .admin-link-row {
@@ -434,12 +453,14 @@ a {
 }
 
 .admin-status-panel {
-  border-radius: 24px;
-  padding: 8px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(2, 6, 23, 0.66));
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 28px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.78));
+  border: 1px solid rgba(148, 163, 184, 0.16);
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .admin-status-head {
@@ -573,8 +594,8 @@ a {
 
 .admin-speaker-stage {
   display: grid;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 2px;
 }
 
 .admin-speaker-nav {
@@ -606,8 +627,8 @@ a {
 }
 
 .speaker-slide-preview-current {
-  min-height: 180px;
-  padding: 14px;
+  min-height: 220px;
+  padding: 16px;
 }
 
 .speaker-slide-preview-side {
@@ -1276,8 +1297,8 @@ a {
 
 .admin-editor-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(460px, 0.96fr);
-  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1.46fr) minmax(260px, 0.54fr);
+  gap: 28px;
   align-items: start;
 }
 
@@ -1296,6 +1317,7 @@ a {
   position: sticky;
   top: 20px;
   align-content: start;
+  justify-items: end;
 }
 
 .admin-preview-card {
@@ -1309,8 +1331,11 @@ a {
 
 .admin-preview-card-phone {
   align-self: start;
-  width: 100%;
-  padding: 18px;
+  width: min(100%, 320px);
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.82)),
+    rgba(15, 23, 42, 0.82);
 }
 
 .admin-preview-header {
@@ -1340,7 +1365,7 @@ a {
 
 .admin-phone-mockup {
   width: 100%;
-  max-width: 240px;
+  max-width: 220px;
   margin: 0 auto;
   padding: 8px 8px 12px;
   border-radius: 42px;
@@ -1479,6 +1504,7 @@ a {
     padding: 20px;
   }
 
+  .admin-hero-top,
   .admin-hero,
   .admin-workspace-grid,
   .admin-status-list,
@@ -1505,6 +1531,7 @@ a {
 
   .admin-preview-pane {
     position: static;
+    justify-items: stretch;
   }
 
   .admin-live-preview-grid {

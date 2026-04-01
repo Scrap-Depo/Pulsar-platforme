@@ -791,16 +791,18 @@ export default function AdminPage({
       )}
       <div className="section-stack">
         <section className="admin-hero card">
-          <div className="admin-hero-copy">
-            <p className="muted" style={{ margin: 0 }}>Панель управления</p>
-            <h1 className="hero-title">Пульсар</h1>
-            <p className="hero-text">
-              Редактируйте текущий слайд, проверяйте preview и выводите нужный экран в эфир.
-            </p>
-            <div className="button-row" style={{ marginTop: 12 }}>
-              <Button icon={<LayoutDashboard size={18} />} variant="ghost" onClick={onFreezeToggle}>
-                {isFrozen ? 'Снять паузу' : 'Заморозить экран'}
-              </Button>
+          <div className="admin-hero-top">
+            <div className="admin-hero-copy">
+              <p className="muted" style={{ margin: 0 }}>Панель управления</p>
+              <h1 className="hero-title">Пульсар</h1>
+              <p className="hero-text">
+                Управление эфиром и настройка текущего слайда в одном рабочем кадре.
+              </p>
+              <div className="button-row" style={{ marginTop: 12 }}>
+                <Button icon={<LayoutDashboard size={18} />} variant="ghost" onClick={onFreezeToggle}>
+                  {isFrozen ? 'Снять паузу' : 'Заморозить экран'}
+                </Button>
+              </div>
             </div>
 
             <div className="admin-session-inline card">
@@ -867,7 +869,7 @@ export default function AdminPage({
                   src={qrCodeUrl}
                   alt={`QR-код для подключения к сессии ${session.joinCode}`}
                 />
-                <span className="muted">Сканируйте, чтобы открыть экран участника</span>
+                <span className="muted">Точка входа для новых участников</span>
               </div>
             </div>
           </div>
