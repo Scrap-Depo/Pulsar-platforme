@@ -861,7 +861,6 @@ export default function App() {
         <ParticipantPage
           appTitle={APP_TITLE}
           activeParticipant={activeParticipant}
-          sessionSynced={sessionSynced}
           sessionError={sessionError}
           joinCode={session.joinCode}
           joinCodeDraft={joinCodeDraft}
