@@ -422,11 +422,13 @@ export default function App() {
 
     async function setupSessionSync() {
       try {
-        await ensureSessionDocument(session, ownerUid);
-        if (isActive) {
-          setSessionReady(true);
-          setSessionSynced(false);
-          setSessionError('');
+        if (screen === 'admin') {
+          await ensureSessionDocument(session, ownerUid);
+          if (isActive) {
+            setSessionReady(true);
+            setSessionSynced(false);
+            setSessionError('');
+          }
         }
 
         const unsubscribe = subscribeToSession(
@@ -456,7 +458,14 @@ export default function App() {
       } catch (error) {
         if (isActive) {
           setSessionSynced(false);
-          setSessionError(getFirebaseErrorMessage(error, 'Не удалось создать документ сессии в Firestore.'));
+          setSessionError(
+            getFirebaseErrorMessage(
+              error,
+              screen === 'admin'
+                ? 'Не удалось создать документ сессии в Firestore.'
+                : 'Не удалось подключиться к живой сессии в Firestore.',
+            ),
+          );
         }
 
         return undefined;
@@ -473,7 +482,7 @@ export default function App() {
       isActive = false;
       cleanup?.();
     };
-  }, [authUid, session.id]);
+  }, [authUid, screen, session.id]);
 
   useEffect(() => {
     if (!authUid || !sessionReady || screen !== 'admin') {
