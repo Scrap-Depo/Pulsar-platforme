@@ -387,6 +387,27 @@ export default function App() {
     }
   }
 
+  async function launchAudienceScreen() {
+    const nextSession: Session = {
+      ...session,
+      liveSlideId: currentSlide?.id ?? session.liveSlideId,
+      status: currentSlide ? 'live' : session.status,
+    };
+
+    setSession(nextSession);
+
+    if (authUid) {
+      try {
+        await saveSessionDocument(nextSession, authUid);
+      } catch (error) {
+        setSessionError(getFirebaseErrorMessage(error, 'Не удалось запустить трансляцию в Firestore.'));
+        return;
+      }
+    }
+
+    setScreen('projector');
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -854,7 +875,7 @@ export default function App() {
             );
           }}
           onSessionChange={setSession}
-          onScreenChange={setScreen}
+          onLaunchAudienceScreen={launchAudienceScreen}
         />
       )}
       {screen === 'participant' && (

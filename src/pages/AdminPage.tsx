@@ -91,7 +91,7 @@ type AdminPageProps = {
   onCloudParticipantWordChange: (value: string) => void;
   onCloudUseAIChange: (value: boolean) => void;
   onSessionChange: (session: Session) => void;
-  onScreenChange: (screen: AppScreen) => void;
+  onLaunchAudienceScreen: () => void;
 };
 
 export default function AdminPage({
@@ -162,7 +162,7 @@ export default function AdminPage({
   onCloudParticipantWordChange,
   onCloudUseAIChange,
   onSessionChange,
-  onScreenChange,
+  onLaunchAudienceScreen,
 }: AdminPageProps) {
   const [isCreateSlideModalOpen, setIsCreateSlideModalOpen] = useState(false);
   const [qrVersion, setQrVersion] = useState(0);
@@ -779,14 +779,7 @@ export default function AdminPage({
             <div className="button-row" style={{ marginTop: 12 }}>
               <Button
                 icon={<MonitorPlay size={18} />}
-                onClick={() => {
-                  onSessionChange({
-                    ...session,
-                    liveSlideId: currentSlide?.id ?? session.liveSlideId,
-                    status: currentSlide ? 'live' : session.status,
-                  });
-                  onScreenChange('projector');
-                }}
+                onClick={onLaunchAudienceScreen}
               >
                 Запустить трансляцию
               </Button>
