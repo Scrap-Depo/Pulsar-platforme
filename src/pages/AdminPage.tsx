@@ -171,6 +171,16 @@ export default function AdminPage({
   const [isCreateSlideModalOpen, setIsCreateSlideModalOpen] = useState(false);
   const [qrVersion, setQrVersion] = useState(0);
   const [copiedState, setCopiedState] = useState<'idle' | 'done'>('idle');
+  const [sessionTitleDraft, setSessionTitleDraft] = useState(session.title);
+  const [joinCodeDraft, setJoinCodeDraft] = useState(session.joinCode);
+
+  useEffect(() => {
+    setSessionTitleDraft(session.title);
+  }, [session.title]);
+
+  useEffect(() => {
+    setJoinCodeDraft(session.joinCode);
+  }, [session.joinCode]);
 
   function createJoinCode() {
     return `PULSAR${Math.floor(1000 + Math.random() * 9000)}`;
@@ -536,21 +546,34 @@ export default function AdminPage({
     });
   }
 
-  function handleSessionTitleChange(value: string) {
+  function commitSessionTitle(value: string) {
+    if (value === session.title) {
+      return;
+    }
+
     onSessionPatch({
       title: value,
     });
   }
 
-  function handleJoinCodeChange(value: string) {
+  function commitJoinCode(value: string) {
+    const normalizedJoinCode = value.toUpperCase().replace(/\s+/g, '');
+
+    if (!normalizedJoinCode || normalizedJoinCode === session.joinCode) {
+      setJoinCodeDraft(session.joinCode);
+      return;
+    }
+
     onSessionPatch({
-      joinCode: value.toUpperCase().replace(/\s+/g, ''),
+      joinCode: normalizedJoinCode,
     });
   }
 
   function handleRefreshJoinAccess() {
+    const nextJoinCode = createJoinCode();
+    setJoinCodeDraft(nextJoinCode);
     onSessionPatch({
-      joinCode: createJoinCode(),
+      joinCode: nextJoinCode,
     });
     setQrVersion((value) => value + 1);
   }
@@ -794,8 +817,14 @@ export default function AdminPage({
                   <span className="admin-field-label">Название сессии</span>
                   <input
                     className="admin-field-input"
-                    value={session.title}
-                    onChange={(event) => handleSessionTitleChange(event.target.value)}
+                    value={sessionTitleDraft}
+                    onChange={(event) => setSessionTitleDraft(event.target.value)}
+                    onBlur={() => commitSessionTitle(sessionTitleDraft)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitSessionTitle(sessionTitleDraft);
+                      }
+                    }}
                     placeholder="Например, Q2 Town Hall"
                   />
                 </label>
@@ -803,8 +832,14 @@ export default function AdminPage({
                   <span className="admin-field-label">Код подключения</span>
                   <input
                     className="admin-field-input admin-field-input-code"
-                    value={session.joinCode}
-                    onChange={(event) => handleJoinCodeChange(event.target.value)}
+                    value={joinCodeDraft}
+                    onChange={(event) => setJoinCodeDraft(event.target.value.toUpperCase().replace(/\s+/g, ''))}
+                    onBlur={() => commitJoinCode(joinCodeDraft)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        commitJoinCode(joinCodeDraft);
+                      }
+                    }}
                     placeholder="PULSAR42"
                     maxLength={12}
                   />
