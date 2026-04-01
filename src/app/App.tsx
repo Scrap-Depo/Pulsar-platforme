@@ -394,17 +394,14 @@ export default function App() {
           'Поиск сессии в Firebase занял слишком много времени.',
         );
       } catch (error) {
-        if (code !== 'PULSAR42') {
-          setJoinError(getFirebaseErrorMessage(error, 'Не удалось найти сессию в Firestore.'));
-          return;
-        }
+        // Fall back to direct session read if the joinCode query times out or fails.
       }
 
-      if (!fetchedSession && code === 'PULSAR42') {
+      if (!fetchedSession) {
         try {
           setJoinStatus('Пробуем открыть сессию напрямую...');
           fetchedSession = await withTimeout(
-            getSessionById('session-q1'),
+            getSessionById(session.id),
             8000,
             'Прямое чтение сессии из Firebase заняло слишком много времени.',
           );
