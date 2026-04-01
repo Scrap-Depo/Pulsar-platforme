@@ -831,7 +831,6 @@ export default function AdminPage({
               </div>
               <div className="admin-session-qr">
                 <div className="admin-session-qr-actions">
-                  <span className="admin-choice-icon"><Link2 size={18} /></span>
                   <Button
                     variant="ghost"
                     onClick={handleRefreshJoinAccess}
