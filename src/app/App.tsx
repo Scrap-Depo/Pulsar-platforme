@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import AdminPage from '../pages/AdminPage';
 import ParticipantPage from '../pages/ParticipantPage';
@@ -177,6 +177,7 @@ export default function App() {
   const [participantsError, setParticipantsError] = useState('');
   const [responsesReady, setResponsesReady] = useState(false);
   const [responsesError, setResponsesError] = useState('');
+  const skipNextAdminSessionSaveRef = useRef(false);
 
   const currentSlide = findSlideById(session.slides, session.currentSlideId);
   const liveSlide = findSlideById(session.slides, session.liveSlideId);
@@ -313,15 +314,7 @@ export default function App() {
       return;
     }
 
-    await saveResponse(session.id, {
-      id: createId('response'),
-      sessionId: session.id,
-      slideId: liveOpenAnswersSlide.id,
-      participantId: activeParticipantId,
-      type: 'open-answers',
-      value: participantPhrase.trim(),
-      createdAt: new Date().toISOString(),
-    });
+    await upsertSingleResponse(liveOpenAnswersSlide.id, 'open-answers', participantPhrase.trim());
     setParticipantPhrase('');
   }
 
@@ -368,6 +361,11 @@ export default function App() {
       return;
     }
 
+    if (!sessionSynced) {
+      setJoinError('Живая сессия еще подключается. Попробуйте через пару секунд.');
+      return;
+    }
+
     if (sessionSynced && code !== session.joinCode) {
       setJoinError('Неверный код подключения.');
       return;
@@ -380,13 +378,11 @@ export default function App() {
 
     try {
       setJoinPending(true);
-      setParticipants((current) => [...current, nextParticipant]);
       setActiveParticipantId(nextParticipant.id);
       await saveParticipant(session.id, nextParticipant);
       setJoinCodeDraft('');
       setJoinError('');
     } catch (error) {
-      setParticipants((current) => current.filter((participant) => participant.id !== nextParticipant.id));
       setActiveParticipantId((current) => (current === nextParticipant.id ? null : current));
       setJoinError(getFirebaseErrorMessage(error, 'Не удалось зарегистрировать участника в Firestore.'));
     } finally {
@@ -395,6 +391,14 @@ export default function App() {
   }
 
   async function launchAudienceScreen() {
+    if (currentSlide) {
+      setSession((currentSession) => ({
+        ...currentSession,
+        liveSlideId: currentSlide.id,
+        status: 'live',
+      }));
+    }
+
     if (authUid && currentSlide) {
       try {
         await updateSessionDocument(
@@ -484,6 +488,7 @@ export default function App() {
               return;
             }
 
+            skipNextAdminSessionSaveRef.current = true;
             setSession(nextSession);
             setSessionReady(true);
             setSessionSynced(true);
@@ -532,6 +537,11 @@ export default function App() {
 
   useEffect(() => {
     if (!authUid || !sessionReady || screen !== 'admin') {
+      return;
+    }
+
+    if (skipNextAdminSessionSaveRef.current) {
+      skipNextAdminSessionSaveRef.current = false;
       return;
     }
 
