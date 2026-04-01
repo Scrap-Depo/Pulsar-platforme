@@ -112,7 +112,7 @@ function loadPersistedAppState(): PersistedAppState {
     }
 
     return {
-      screen: launch.screen ?? (parsed.screen === 'participant' || parsed.screen === 'projector' ? parsed.screen : 'admin'),
+      screen: launch.screen ?? 'admin',
       session: parsed.session,
       participants: Array.isArray(parsed.participants) ? parsed.participants : [],
       activeParticipantId: typeof parsed.activeParticipantId === 'string' ? parsed.activeParticipantId : null,
