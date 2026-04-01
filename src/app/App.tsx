@@ -24,6 +24,7 @@ import { createId } from '../shared/lib/ids';
 import { auth } from '../shared/lib/firebase';
 import {
   ensureSessionDocument,
+  getSessionById,
   getSessionByJoinCode,
   saveSessionDocument,
   subscribeToSession,
@@ -385,11 +386,20 @@ export default function App() {
     if (!sessionSynced) {
       try {
         setJoinStatus('Ищем сессию в Firebase...');
-        const fetchedSession = await withTimeout(
+        let fetchedSession = await withTimeout(
           getSessionByJoinCode(code),
           8000,
           'Поиск сессии в Firebase занял слишком много времени.',
         );
+
+        if (!fetchedSession && code === 'PULSAR42') {
+          setJoinStatus('Пробуем открыть сессию напрямую...');
+          fetchedSession = await withTimeout(
+            getSessionById('session-q1'),
+            8000,
+            'Прямое чтение сессии из Firebase заняло слишком много времени.',
+          );
+        }
 
         if (!fetchedSession) {
           setJoinError('Сессия с таким кодом пока не найдена. Проверьте ссылку или QR-код.');

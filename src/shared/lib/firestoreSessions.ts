@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { Session } from '../types/common';
 
@@ -85,6 +85,18 @@ export async function getSessionByJoinCode(joinCode: string) {
   }
 
   const data = snapshot.docs[0].data() as FirestoreSession;
+  const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
+  return session;
+}
+
+export async function getSessionById(sessionId: string) {
+  const snapshot = await getDoc(getSessionRef(sessionId));
+
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const data = snapshot.data() as FirestoreSession;
   const { ownerUid: _ownerUid, updatedAt: _updatedAt, ...session } = data;
   return session;
 }
