@@ -508,6 +508,26 @@ export default function App() {
   }, [session.id, sessionReady]);
 
   useEffect(() => {
+    if (activeParticipantId || !sessionSynced) {
+      return;
+    }
+
+    const code = joinCodeDraft.trim().toUpperCase();
+
+    if (!code) {
+      setJoinError('');
+      return;
+    }
+
+    if (code !== session.joinCode) {
+      setJoinError('Этот код устарел. Сканируйте новый QR-код или откройте новую ссылку.');
+      return;
+    }
+
+    setJoinError('');
+  }, [joinCodeDraft, session.joinCode, sessionSynced, activeParticipantId]);
+
+  useEffect(() => {
     if (!sessionReady) {
       return;
     }
@@ -877,6 +897,7 @@ export default function App() {
           }}
           onJoinCodeDraftChange={setJoinCodeDraft}
           onJoinSession={joinParticipant}
+          onRefreshJoinLink={() => window.location.reload()}
         />
       )}
       {screen === 'projector' && (

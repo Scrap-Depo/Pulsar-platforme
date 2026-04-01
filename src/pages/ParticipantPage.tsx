@@ -45,6 +45,7 @@ type ParticipantPageProps = {
   onCloudParticipantWordChange: (value: string) => void;
   onJoinCodeDraftChange: (value: string) => void;
   onJoinSession: () => void;
+  onRefreshJoinLink: () => void;
 };
 
 export default function ParticipantPage({
@@ -83,8 +84,10 @@ export default function ParticipantPage({
   onCloudParticipantWordChange,
   onJoinCodeDraftChange,
   onJoinSession,
+  onRefreshJoinLink,
 }: ParticipantPageProps) {
   const hasPrefilledJoinCode = Boolean(joinCodeDraft.trim());
+  const isStaleCode = Boolean(joinError && joinError.includes('устарел'));
   const moduleContent = {
     'multiple-choice': (
       <MultipleChoiceParticipant
@@ -180,9 +183,14 @@ export default function ParticipantPage({
               )}
               {joinError && <p style={{ margin: 0, color: '#fda4af' }}>{joinError}</p>}
               <div className="button-row">
-                <Button onClick={onJoinSession} disabled={joinPending}>
+                <Button onClick={onJoinSession} disabled={joinPending || isStaleCode}>
                   {joinPending ? 'Входим...' : 'Войти'}
                 </Button>
+                {isStaleCode && (
+                  <Button variant="ghost" onClick={onRefreshJoinLink}>
+                    Обновить страницу
+                  </Button>
+                )}
               </div>
             </div>
           </div>
