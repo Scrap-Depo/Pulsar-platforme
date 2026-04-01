@@ -12,6 +12,7 @@ import { WordCloudItem } from '../features/word-cloud/model/types';
 type ParticipantPageProps = {
   appTitle: string;
   activeParticipant: Participant | null;
+  sessionSynced: boolean;
   joinCode: string;
   joinCodeDraft: string;
   joinError: string;
@@ -51,6 +52,7 @@ type ParticipantPageProps = {
 export default function ParticipantPage({
   appTitle,
   activeParticipant,
+  sessionSynced,
   joinCode,
   joinCodeDraft,
   joinError,
@@ -202,7 +204,14 @@ export default function ParticipantPage({
   return (
     <ParticipantShell>
       <div className="section-stack">
-        {liveModule ? (
+        {!sessionSynced ? (
+          <div className="card" style={{ padding: 28 }}>
+            <h2 style={{ marginTop: 0 }}>Подключаем актуальный слайд</h2>
+            <p className="hero-text" style={{ marginBottom: 0 }}>
+              Ждем текущий эфир из сессии, чтобы показать вам именно тот вопрос, который сейчас открыт у ведущего.
+            </p>
+          </div>
+        ) : liveModule ? (
           moduleContent
         ) : (
           <div className="card" style={{ padding: 28 }}>

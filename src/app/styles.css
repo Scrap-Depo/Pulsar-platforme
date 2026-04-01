@@ -352,6 +352,12 @@ a {
   padding: 32px;
 }
 
+.projector-return-bar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
 .admin-hero {
   padding: 20px 24px;
   display: grid;

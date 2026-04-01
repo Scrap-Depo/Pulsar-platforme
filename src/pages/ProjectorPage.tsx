@@ -3,6 +3,8 @@ import OpenAnswersProjector from '../features/open-answers/components/OpenAnswer
 import PulseProjector from '../features/pulse/components/PulseProjector';
 import WordCloudProjector from '../features/word-cloud/components/WordCloudProjector';
 import ProjectorShell from '../widgets/layout/ProjectorShell';
+import Button from '../shared/ui/Button';
+import { ChevronLeft } from 'lucide-react';
 import {
   LiveModule,
   MultipleChoiceResultDisplay,
@@ -42,6 +44,7 @@ type ProjectorPageProps = {
   cloudParticipantWord: string;
   cloudVisualization: WordCloudVisualization;
   onFocusedAnswerChange: (id: string | null) => void;
+  onReturnToAdmin: () => void;
 };
 
 export default function ProjectorPage({
@@ -69,6 +72,7 @@ export default function ProjectorPage({
   cloudParticipantWord,
   cloudVisualization,
   onFocusedAnswerChange,
+  onReturnToAdmin,
 }: ProjectorPageProps) {
   const moduleContent = {
     'multiple-choice': (
@@ -113,6 +117,11 @@ export default function ProjectorPage({
   return (
     <ProjectorShell appTitle={appTitle}>
       <div className="section-stack">
+        <div className="projector-return-bar">
+          <Button variant="ghost" icon={<ChevronLeft size={16} />} onClick={onReturnToAdmin}>
+            Вернуться в пульт
+          </Button>
+        </div>
         <div className="projector-stage card" style={{ opacity: isFrozen ? 0.45 : 1 }}>
           {isFrozen ? (
             <div style={{ textAlign: 'center' }}>
