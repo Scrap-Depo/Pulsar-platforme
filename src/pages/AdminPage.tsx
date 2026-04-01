@@ -832,8 +832,15 @@ export default function AdminPage({
               <div className="admin-session-qr">
                 <div className="admin-session-qr-actions">
                   <span className="admin-choice-icon"><Link2 size={18} /></span>
-                  <Button variant="ghost" onClick={handleRefreshJoinAccess} icon={<RefreshCw size={14} />}>
-                    Новый код
+                  <Button
+                    variant="ghost"
+                    onClick={handleRefreshJoinAccess}
+                    icon={<RefreshCw size={14} />}
+                    aria-label="Обновить код подключения"
+                    title="Обновить код подключения"
+                    style={{ width: 44, justifyContent: 'center', padding: '12px 0', gap: 0 }}
+                  >
+                    {''}
                   </Button>
                 </div>
                 <img
