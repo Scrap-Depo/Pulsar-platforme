@@ -308,7 +308,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           [
             ['prepare', 'Подготовка'],
             ['live', 'Эфир'],
-            ['results', 'Итоги'],
+            ['results', 'История'],
           ] as [HostTab, string][]
         )
           .filter(([key]) => key === 'results' || !finished)
@@ -327,6 +327,13 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       {view === 'live' && !finished && (
         <section className="card control-panel">
           <h2>Управление эфиром</h2>
+          <p>
+            Для зала откройте чистый экран без пульта и разверните его на проектор (в браузере —
+            F11).
+          </p>
+          <a className="screen-link" href={projectorLink} target="_blank" rel="noreferrer">
+            Экран для аудитории
+          </a>
           <p className="join-url">{joinLink}</p>
           <JoinQr url={joinLink} />
           <button

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { Room, PublicResponse, OwnAnswers } from '../shared/types/live';
 import { useLiveDoc, useLiveList, useOnline } from '../shared/hooks/useLiveData';
@@ -12,6 +12,7 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const online = useOnline();
+  const autoJoined = useRef(false);
   async function join() {
     if (busy) return;
     setBusy(true);
@@ -25,12 +26,21 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
       setBusy(false);
     }
   }
+  useEffect(() => {
+    // The projector opens straight into the meeting when the link carries a code.
+    if (viewer && code && online && !autoJoined.current) {
+      autoJoined.current = true;
+      void join();
+    }
+  });
   return (
     <main className={`live-shell ${viewer ? 'projector-view' : 'audience-view'}`}>
-      <header>
-        <h1>Пульсар</h1>
-        <p>{viewer ? 'Экран аудитории' : 'Участие во встрече'}</p>
-      </header>
+      {!(viewer && sid) && (
+        <header>
+          <h1>Пульсар</h1>
+          <p>{viewer ? 'Экран аудитории' : 'Участие во встрече'}</p>
+        </header>
+      )}
       {!online && (
         <p className="notice" role="status">
           Нет соединения. Показанные данные могут быть устаревшими.

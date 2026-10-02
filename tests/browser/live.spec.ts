@@ -71,7 +71,6 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   const projContext = await browser.newContext();
   const proj = await projContext.newPage();
   await proj.goto(projectorLink!);
-  await proj.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Заморозить проектор', exact: true }).click();
   await host.getByRole('tab', { name: 'Подготовка' }).click();
@@ -83,7 +82,6 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   await proj.reload();
-  await proj.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Снять заморозку', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
@@ -102,7 +100,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   host.once('dialog', (d) => d.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
   await expect(p.getByText('Встреча завершена. Спасибо за участие.')).toBeVisible();
-  await host.getByRole('tab', { name: 'Итоги' }).click();
+  await host.getByRole('tab', { name: 'История' }).click();
   const download = host.waitForEvent('download');
   await host.getByRole('button', { name: 'Скачать результаты JSON' }).click();
   expect((await download).suggestedFilename()).toMatch(/pulsar-.*\.json/);
@@ -178,7 +176,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   expect(host.url()).toBe(url);
   const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
   const code = new URL(link).searchParams.get('code')!;
-  await host.getByRole('tab', { name: 'Итоги' }).click();
+  await host.getByRole('tab', { name: 'История' }).click();
   await host.getByText('Удалить встречу и все ответы', { exact: true }).click();
   await host.getByLabel('Код для удаления', { exact: true }).fill(code);
   await host.getByRole('button', { name: 'Удалить встречу', exact: true }).click();
