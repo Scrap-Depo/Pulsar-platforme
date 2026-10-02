@@ -23,7 +23,9 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await preview.getByRole('button', { name: 'Экран проектора' }).click();
   await expect(preview.getByText(/команда/i)).toHaveCount(0);
   await preview.getByLabel('Показать вымышленные ответы для примера').check();
-  await expect(preview.getByText('Пример оформления с вымышленными ответами.', { exact: false })).toBeVisible();
+  await expect(
+    preview.getByText('Пример оформления с вымышленными ответами.', { exact: false }),
+  ).toBeVisible();
   await expect(preview.getByText(/команда/i)).toBeVisible();
   await preview.getByLabel('Показать вымышленные ответы для примера').uncheck();
   await expect(preview.getByText(/команда/i)).toHaveCount(0);
@@ -44,7 +46,9 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   }
   await host.getByRole('button', { name: '2. Главный инсайт квартала?' }).click();
   await host.getByLabel('Когда показывать результаты').selectOption('after');
-  await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
+  await host
+    .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
+    .click();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('Черновик, который не должен пропасть');
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
   await p2.getByRole('button', { name: 'Отправить', exact: true }).click();
@@ -79,7 +83,9 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await host
     .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10' })
     .click();
-  await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
+  await host
+    .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
+    .click();
   await expect(p.getByText('Выберите оценку от 1 до 10', { exact: true })).toBeVisible();
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
@@ -138,7 +144,9 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await expect(host.getByText('Есть несохранённые изменения.', { exact: false })).toHaveCount(0);
   await host.getByLabel('Когда показывать результаты').selectOption('after');
-  await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
+  await host
+    .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
+    .click();
   const pc = await browser.newContext({ viewport: { width: 360, height: 740 } });
   const p = await pc.newPage();
   await p.goto((await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!);
@@ -162,7 +170,9 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await host.getByRole('button', { name: '4. Введите слово или короткую ассоциацию' }).click();
   await host.getByLabel('Когда показывать результаты').selectOption('immediate');
-  await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
+  await host
+    .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
+    .click();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('а'.repeat(41));
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('Вдохновение');
@@ -195,4 +205,85 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await p.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(p.getByRole('alert')).toContainText('Код не найден');
   await Promise.all([hc.close(), pc.close()]);
+});
+
+test('preparation settings, live controls and repeat launch are clear on a laptop', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`ux-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-password-789');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await expect(host.getByRole('heading', { name: 'Вопросы', exact: true })).toBeVisible();
+  await expect(host.getByLabel('Карточек на участника')).toHaveCount(0);
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toHaveCount(0);
+  await host.getByRole('tab', { name: 'Эфир' }).click();
+  await expect(host.getByRole('progressbar')).toHaveCount(0);
+  await expect(host.getByRole('button', { name: 'Заморозить проектор' })).toHaveCount(0);
+  await host.getByRole('button', { name: 'Выбрать вопрос' }).click();
+  await host.getByRole('button', { name: '2. Главный инсайт квартала?' }).click();
+  await expect(host.getByLabel('Карточек на участника')).toBeVisible();
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toBeVisible();
+  await host
+    .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10' })
+    .click();
+  await expect(host.getByLabel('Карточек на участника')).toHaveCount(0);
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toHaveCount(0);
+  await host.getByRole('button', { name: '4. Введите слово или короткую ассоциацию' }).click();
+  await expect(host.getByLabel('Карточек на участника')).toHaveCount(0);
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toBeVisible();
+  await host.getByRole('button', { name: '1. Какой ваш главный приоритет на этот год?' }).click();
+  await host.getByLabel('Название встречи', { exact: true }).fill('Проверка интерфейса');
+  await host
+    .getByRole('textbox', { name: 'Вопрос', exact: true })
+    .fill('Что важно проверить перед запуском встречи?');
+  await expect(host.getByRole('button', { name: 'Запустить вопрос', exact: true })).toBeDisabled();
+  await expect(host.getByText('Есть несохранённые изменения. Сохраните перед запуском.', { exact: true })).toBeVisible();
+  await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await host.screenshot({ path: 'test-results/preparation-laptop.png', fullPage: true });
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  await expect(host.getByText('Вопрос запущен. Участники могут отвечать.')).toBeVisible();
+  await expect(host.getByText('Результаты скрыты от участников')).toBeVisible();
+  await expect(host.getByText('Участники ещё не подключились.')).toBeVisible();
+  await expect(host.getByRole('progressbar')).toHaveCount(0);
+  await expect(host.getByRole('button', { name: 'Открыть лайки' })).toHaveCount(0);
+  const close = host.getByRole('button', { name: 'Завершить сбор ответов' });
+  const stage = host.getByRole('region', { name: 'Текущий вопрос и результаты' });
+  const closeBox = (await close.boundingBox())!;
+  const stageBox = (await stage.boundingBox())!;
+  expect(closeBox.y + closeBox.height).toBeLessThan(720);
+  expect(stageBox.x + stageBox.width).toBeLessThanOrEqual(closeBox.x);
+  await host.screenshot({ path: 'test-results/live-laptop.png', fullPage: true });
+  await host.getByLabel('Таймер, секунд').fill('1');
+  await host.getByRole('button', { name: 'Запустить таймер' }).click();
+  await expect(host.getByText('Время истекло.', { exact: false })).toBeVisible();
+  await expect(close).toBeVisible();
+  await host.getByText('Показ и оформление результатов', { exact: true }).click();
+  await host.getByRole('combobox', { name: 'Вид результата', exact: true }).selectOption('donut');
+  await expect(host.getByText('Вид результатов обновлён.')).toBeVisible();
+  await expect(host.getByRole('combobox', { name: 'Вид результата', exact: true })).toHaveValue('donut');
+  await close.click();
+  await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
+  await host.getByRole('button', { name: 'Следующий вопрос', exact: true }).click();
+  let confirmations = 0;
+  host.once('dialog', (dialog) => {
+    confirmations++;
+    void dialog.accept();
+  });
+  await host.getByRole('button', { name: 'Задать вопрос повторно', exact: true }).click();
+  await expect(close).toBeVisible();
+  expect(confirmations).toBe(1);
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await host.getByText('Завершение встречи', { exact: true }).click();
+  host.once('dialog', (dialog) => void dialog.accept());
+  await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
+  await host.getByRole('tab', { name: 'История' }).click();
+  await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(3);
+  await context.close();
 });

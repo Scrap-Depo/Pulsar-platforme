@@ -1637,7 +1637,7 @@ a {
 .slide-menu summary { list-style: none; cursor: pointer; min-width: var(--tap); min-height: var(--tap); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius); font-size: 20px; }
 .slide-menu summary::-webkit-details-marker { display: none; }
 .slide-menu[open] .slide-menu-items { position: absolute; right: 0; top: 48px; z-index: 5; display: grid; gap: 6px; padding: 10px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface-deep); box-shadow: 0 8px 24px rgba(0,0,0,.5); min-width: 170px; }
-.type-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .live-shell .type-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .template-list { margin-top: 12px; }
 .template-list button { display: block; width: 100%; margin-top: 8px; text-align: left; }
@@ -1703,7 +1703,6 @@ a {
 .live-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 350px); gap: 16px; align-items: start; }
 .live-stage h2, .live-controls h2 { margin: 0 0 12px; }
 .live-states { display: flex; flex-wrap: wrap; gap: 8px; }
-.live-stage .live-results > h2 { display: none; }
 .live-controls { display: grid; gap: 14px; }
 .live-controls .primary-action { width: 100%; padding: 12px; font-size: 1rem; }
 .live-controls .timer { margin: 0; }
@@ -1722,3 +1721,5 @@ a {
   .host-view .host-header { flex-direction: row; align-items: center; flex-wrap: wrap; }
   .live-shell .meeting-title { max-width: none; width: 100%; }
 }
+
+.live-shell .type-tile { padding: 10px 6px; min-width: 0; overflow-wrap: anywhere; }
