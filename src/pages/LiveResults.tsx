@@ -16,10 +16,6 @@ export default function LiveResults({
     return (
       <div className="card live-results">
         <h2>{slide.title}</h2>
-        <p>
-          {round.phase === 'open' ? 'Приём ответов открыт' : 'Приём ответов закрыт'}. Результаты
-          откроет ведущий.
-        </p>
       </div>
     );
   if (!results.length)

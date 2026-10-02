@@ -135,7 +135,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const [config, setConfig] = useState<RoundSettings>({
     cardLimit: 1,
     moderation: true,
-    immediate: false,
+    immediate: true,
   });
   const [deleteText, setDeleteText] = useState('');
   const [historyId, setHistoryId] = useState('');
@@ -536,13 +536,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               </div>
               <div className="editor-side">
                 <QuestionPreview key={current.id} slide={current} settings={config} />
-                <button disabled={busy || !online || dirty} onClick={open}>
-                  {openRequest
-                    ? 'Повторить попытку запуска'
-                    : rounds.data.some((r) => r.slide.id === current.id)
-                      ? 'Задать вопрос повторно'
-                      : 'Запустить вопрос'}
-                </button>
                 <p>
                   Запуск показывает выбранный вопрос участникам и завершает предыдущий сбор. Для
                   этого запуска ответы собираются заново; прежние доступны в истории.
@@ -586,6 +579,17 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   Отменить изменения
                 </button>
               )}
+              <button
+                className="primary-action launch"
+                disabled={busy || !online || dirty}
+                onClick={open}
+              >
+                {openRequest
+                  ? 'Повторить попытку запуска'
+                  : rounds.data.some((r) => r.slide.id === current.id)
+                    ? 'Задать вопрос повторно'
+                    : 'Запустить вопрос'}
+              </button>
               {dirty ? (
                 <p className="save-state dirty">Есть несохранённые изменения.</p>
               ) : (

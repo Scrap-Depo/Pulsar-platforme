@@ -43,6 +43,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
     await expect(page.getByText('Ожидаем первый вопрос ведущего.')).toBeVisible();
   }
   await host.getByRole('button', { name: '2. Главный инсайт квартала?' }).click();
+  await host.getByLabel('Показывать результаты сразу при сборе').uncheck();
   await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('Черновик, который не должен пропасть');
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
@@ -132,6 +133,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('combobox', { name: 'Вид результата', exact: true }).selectOption('donut');
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await expect(host.getByText('Есть несохранённые изменения.')).toHaveCount(0);
+  await host.getByLabel('Показывать результаты сразу при сборе').uncheck();
   await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
   const pc = await browser.newContext({ viewport: { width: 360, height: 740 } });
   const p = await pc.newPage();
