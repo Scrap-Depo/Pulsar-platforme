@@ -1,0 +1,65 @@
+{
+  "measuredAt": "2026-10-02T07:57:33.484Z",
+  "functionPort": 5002,
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 219,
+      "p95OwnSnapshotMs": 223,
+      "allResultsSeenBy95PercentMs": 738,
+      "allResultsSeenByAllMs": 766,
+      "confirmed": 100
+    },
+    {
+      "type": "open-answers",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 180,
+      "p95OwnSnapshotMs": 183,
+      "allResultsSeenBy95PercentMs": 759,
+      "allResultsSeenByAllMs": 770,
+      "confirmed": 100
+    },
+    {
+      "type": "pulse",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 171,
+      "p95OwnSnapshotMs": 172,
+      "allResultsSeenBy95PercentMs": 762,
+      "allResultsSeenByAllMs": 775,
+      "confirmed": 100
+    },
+    {
+      "type": "word-cloud",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 186,
+      "p95OwnSnapshotMs": 186,
+      "allResultsSeenBy95PercentMs": 793,
+      "allResultsSeenByAllMs": 803,
+      "confirmed": 100
+    }
+  ]
+}

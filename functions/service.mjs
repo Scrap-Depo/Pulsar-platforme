@@ -1,0 +1,460 @@
+import {
+  validSlide,
+  responseValue,
+  responseId,
+  publicResponse,
+  ownResponse,
+  settings,
+  joinCode,
+  text,
+  fail,
+} from './domain.mjs';
+
+const now = () => new Date().toISOString();
+const value = (snap) => (snap.exists ? snap.data() : null);
+const required = (snap, message) => value(snap) ?? fail(message);
+const owner = (meeting, uid) => {
+  if (meeting.ownerUid !== uid) fail('Нет доступа ведущего.');
+};
+const active = (meeting) => {
+  if (['finished', 'deleting'].includes(meeting.status)) fail('Встреча завершена или удаляется.');
+};
+function publicRound(round) {
+  if (!round) return null;
+  return {
+    id: round.id,
+    slide: round.slide,
+    phase: round.phase,
+    visible: round.visible,
+    settings: round.settings,
+    likesOpen: round.likesOpen,
+    deadline: round.deadline ?? null,
+  };
+}
+
+export function createService(db, onSubmitTiming = () => {}) {
+  return async function execute(uid, provider, input) {
+    if (!uid) fail('Войдите в приложение.');
+    if (!input || typeof input.action !== 'string') fail('Неизвестное действие.');
+    const { action } = input;
+    if (action === 'create') {
+      if (!['password', 'google.com'].includes(provider))
+        fail('Для создания встречи войдите в аккаунт ведущего.');
+      const sid = text(input.requestId, 100, 'ID встречи');
+      if (!/^[a-zA-Z0-9-]+$/.test(sid)) fail('Некорректный ID встречи.');
+      const slides = (input.slides ?? []).map(validSlide);
+      if (!slides.length || slides.length > 50) fail('Нужно от 1 до 50 слайдов.');
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = joinCode();
+        const result = await db.runTransaction(async (tx) => {
+          const mref = db.doc(`meetings/${sid}`),
+            cref = db.doc(`joinCodes/${code}`);
+          const [old, reserved] = await tx.getAll(mref, cref);
+          if (old.exists) {
+            owner(old.data(), uid);
+            return { id: sid, joinCode: old.data().joinCode };
+          }
+          if (reserved.exists) return null;
+          const meeting = {
+            id: sid,
+            ownerUid: uid,
+            title: text(input.title || 'Новая встреча', 150),
+            joinCode: code,
+            status: 'draft',
+            slides,
+            currentSlideId: slides[0].id,
+            liveSlideId: null,
+            roundId: null,
+            version: 1,
+            createdAt: now(),
+            retention: 'until-owner-deletes',
+          };
+          tx.create(mref, meeting);
+          tx.create(cref, { sessionId: sid });
+          tx.create(db.doc(`rooms/${sid}`), {
+            title: meeting.title,
+            status: 'draft',
+            round: null,
+            frozen: null,
+            joinedCount: 0,
+          });
+          return { id: sid, joinCode: code };
+        });
+        if (result) return result;
+      }
+      fail('Не удалось подобрать код. Повторите создание.');
+    }
+    if (action === 'join') {
+      const code = text(input.code, 30, 'Код').toUpperCase();
+      return db.runTransaction(async (tx) => {
+        const resolved = required(
+          await tx.get(db.doc(`joinCodes/${code}`)),
+          'Код не найден. Проверьте ссылку или введите другой код.',
+        );
+        const sid = resolved.sessionId;
+        const mref = db.doc(`meetings/${sid}`),
+          memberRef = db.doc(`meetings/${sid}/${input.viewer ? 'viewers' : 'members'}/${uid}`);
+        const [msnap, existing, members] = await Promise.all([
+          tx.get(mref),
+          tx.get(memberRef),
+          tx.get(db.collection(`meetings/${sid}/members`)),
+        ]);
+        const meeting = required(msnap, 'Встреча удалена.');
+        if (meeting.joinCode !== code) fail('Код устарел.');
+        if (meeting.status === 'deleting') fail('Встреча удаляется.');
+        if (!existing.exists && meeting.status === 'finished') fail('Встреча завершена.');
+        // Backfill receipts when returning to a round created before this schema
+        // addition. New participants and new rounds need no collection query.
+        if (existing.exists && !input.viewer && meeting.roundId && meeting.status !== 'finished') {
+          const rref = mref.collection('rounds').doc(meeting.roundId);
+          const receiptRef = rref.collection('private').doc(uid);
+          const receipt = await tx.get(receiptRef);
+          if (!receipt.exists) {
+            const previous = await tx.getAll(
+              ...[0, 1, 2].map((slot) =>
+                rref.collection('responses').doc(responseId(meeting.roundId, uid, slot)),
+              ),
+            );
+            const answers = Object.fromEntries(
+              previous
+                .filter((s) => s.exists)
+                .map((s) => {
+                  const response = s.data();
+                  return [String(response.slot), ownResponse(response)];
+                }),
+            );
+            if (Object.keys(answers).length) tx.set(receiptRef, { answers });
+          }
+        }
+        if (!existing.exists) {
+          if (!input.viewer && members.size >= 100)
+            fail('Встреча рассчитана на 100 участников. Лимит достигнут.');
+          tx.create(memberRef, { id: uid, joinedAt: now() });
+          if (!input.viewer) tx.update(db.doc(`rooms/${sid}`), { joinedCount: members.size + 1 });
+        }
+        return { id: sid };
+      });
+    }
+    const sid = text(input.sessionId, 100, 'ID встречи');
+    if (!/^[a-zA-Z0-9-]+$/.test(sid)) fail('Некорректный ID встречи.');
+    const mref = db.doc(`meetings/${sid}`),
+      roomRef = db.doc(`rooms/${sid}`);
+    if (action === 'delete') {
+      await db.runTransaction(async (tx) => {
+        const meeting = required(await tx.get(mref), 'Встреча не найдена.');
+        owner(meeting, uid);
+        tx.update(mref, { status: 'deleting' });
+        tx.set(roomRef, { status: 'deleting', title: meeting.title, round: null, frozen: null });
+        tx.delete(db.doc(`joinCodes/${meeting.joinCode}`));
+      });
+      await db.recursiveDelete(mref);
+      await roomRef.delete();
+      return { deleted: true };
+    }
+    if (action === 'export') {
+      const meeting = required(await mref.get(), 'Встреча не найдена.');
+      owner(meeting, uid);
+      if (meeting.status !== 'finished')
+        fail('Завершите встречу перед выгрузкой, чтобы зафиксировать результаты.');
+      const rounds = await mref.collection('rounds').get();
+      const exported = await Promise.all(
+        rounds.docs.map(async (snap) => {
+          const responses = await snap.ref.collection('responses').get();
+          return {
+            ...snap.data(),
+            answeredCount: new Set(responses.docs.map((d) => d.data().participantId)).size,
+            responses: responses.docs.map((d) => {
+              const { participantId: _privateId, requestId: _request, ...response } = d.data();
+              return response;
+            }),
+          };
+        }),
+      );
+      return { schemaVersion: 2, title: meeting.title, exportedAt: now(), rounds: exported };
+    }
+    if (action === 'submit') {
+      const rid = text(input.roundId, 100);
+      if (!/^[a-zA-Z0-9-]+$/.test(rid)) fail('Некорректный ID раунда.');
+      const slot = input.slot ?? 0;
+      if (!Number.isInteger(slot) || slot < 0 || slot > 2) fail('Лимит карточек достигнут.');
+      const rref = mref.collection('rounds').doc(rid);
+      const id = responseId(rid, uid, slot);
+      const ref = rref.collection('responses').doc(id);
+      const requestId = text(input.requestId, 100);
+      const started = performance.now();
+      let readMs = 0,
+        attempts = 0,
+        ok = false;
+      try {
+        const result = await db.runTransaction(async (tx) => {
+          // All paths are known before the read. One RPC instead of four serial
+          // round trips; every gate stays in the transaction, so close/finish,
+          // membership and revision checks retain their atomic guarantees.
+          attempts++;
+          const readStarted = performance.now();
+          const [msnap, rsnap, member, previous] = await tx.getAll(
+            mref,
+            rref,
+            mref.collection('members').doc(uid),
+            ref,
+          );
+          readMs += performance.now() - readStarted;
+          const meeting = required(msnap, 'Встреча удалена или недоступна.');
+          if (meeting.status === 'deleting') fail('Встреча удаляется.');
+          const round = required(rsnap, 'Раунд не найден.');
+          if (!member.exists) fail('Сначала подключитесь к встрече.');
+          const max = round.slide.type === 'open-answers' ? round.settings.cardLimit : 1;
+          if (slot >= max) fail('Лимит карточек достигнут.');
+          const old = value(previous);
+          if (old?.requestId === requestId) {
+            if (old.value !== responseValue(round.slide, input.value))
+              fail(
+                'Эта попытка уже использована для другого ответа. Измените черновик и отправьте заново.',
+              );
+            return { id, revision: old.revision };
+          }
+          active(meeting);
+          if (meeting.roundId !== rid || round.phase !== 'open') fail('Приём ответов закрыт.');
+          if ((old?.revision ?? 0) !== input.revision)
+            fail('Ответ уже изменён. Обновите его перед повторной отправкой.');
+          const response = {
+            id,
+            roundId: rid,
+            participantId: uid,
+            type: round.slide.type,
+            slot,
+            value: responseValue(round.slide, input.value),
+            displayValue: null,
+            history: old?.history ?? [],
+            moderation:
+              ['open-answers', 'word-cloud'].includes(round.slide.type) && round.settings.moderation
+                ? 'pending'
+                : 'approved',
+            createdAt: old?.createdAt ?? now(),
+            updatedAt: now(),
+            revision: (old?.revision ?? 0) + 1,
+            requestId,
+            likes: 0,
+          };
+          if (old)
+            response.history = [
+              ...response.history,
+              { value: old.value, displayValue: old.displayValue, at: old.updatedAt },
+            ].slice(-20);
+          tx.set(ref, response);
+          tx.set(
+            rref.collection('private').doc(uid),
+            {
+              answers: { [slot]: ownResponse(response) },
+            },
+            { merge: true },
+          );
+          const pref = rref.collection('published').doc(id);
+          if (round.visible && response.moderation === 'approved')
+            tx.set(pref, publicResponse(response));
+          // A new hidden/pending answer has never been published. Avoid a no-op
+          // delete; an edit still removes any previously published version.
+          else if (old) tx.delete(pref);
+          return { id, revision: response.revision };
+        });
+        ok = true;
+        return result;
+      } finally {
+        onSubmitTiming({
+          durationMs: Math.round(performance.now() - started),
+          readMs: Math.round(readMs),
+          attempts,
+          ok,
+        });
+      }
+    }
+    return db.runTransaction(async (tx) => {
+      const meeting = required(await tx.get(mref), 'Встреча удалена или недоступна.');
+      active(meeting);
+      if (action === 'save') {
+        owner(meeting, uid);
+        if (input.version !== meeting.version)
+          fail('Встреча изменена в другой вкладке. Обновите редактор перед сохранением.');
+        if (!Array.isArray(input.slides) || !input.slides.length || input.slides.length > 50)
+          fail('Нужно от 1 до 50 слайдов.');
+        const slides = input.slides.map(validSlide);
+        if (new Set(slides.map((s) => s.id)).size !== slides.length) fail('Повторяющиеся слайды.');
+        const title = text(input.title, 150, 'Название');
+        tx.update(mref, {
+          title,
+          slides,
+          currentSlideId: input.currentSlideId,
+          version: meeting.version + 1,
+        });
+        tx.update(roomRef, { title });
+        return { version: meeting.version + 1 };
+      }
+      if (action === 'open') {
+        owner(meeting, uid);
+        const rid = text(input.requestId, 100);
+        if (!/^[a-zA-Z0-9-]+$/.test(rid)) fail('Некорректный ID раунда.');
+        const newRef = mref.collection('rounds').doc(rid);
+        const existing = await tx.get(newRef);
+        if (existing.exists) return { id: rid };
+        const previousRef = meeting.roundId ? mref.collection('rounds').doc(meeting.roundId) : null;
+        const previous = previousRef ? await tx.get(previousRef) : null;
+        const slide = meeting.slides.find((s) => s.id === input.slideId);
+        if (!slide) fail('Сначала сохраните слайд.');
+        const config = settings(input.settings);
+        const round = {
+          id: rid,
+          slide,
+          settings: config,
+          phase: 'open',
+          visible: config.immediate,
+          likesOpen: false,
+          createdAt: now(),
+          deadline: null,
+        };
+        if (previous?.exists) tx.update(previousRef, { phase: 'closed', likesOpen: false });
+        tx.create(newRef, round);
+        tx.update(mref, { status: 'live', liveSlideId: slide.id, roundId: rid });
+        tx.update(roomRef, { status: 'live', round: publicRound(round) });
+        return { id: rid };
+      }
+      if (action === 'finish') {
+        owner(meeting, uid);
+        const rref = meeting.roundId ? mref.collection('rounds').doc(meeting.roundId) : null;
+        const rsnap = rref ? await tx.get(rref) : null;
+        const round = rsnap?.data();
+        if (round) {
+          round.phase = 'closed';
+          round.likesOpen = false;
+          tx.update(rref, { phase: 'closed', likesOpen: false });
+        }
+        tx.update(mref, { status: 'finished' });
+        tx.update(roomRef, { status: 'finished', round: publicRound(round), frozen: null });
+        return { finished: true };
+      }
+      const rid = meeting.roundId;
+      if (!rid || (input.roundId && input.roundId !== rid)) fail('Этот вопрос уже не в эфире.');
+      const rref = mref.collection('rounds').doc(rid);
+      const round = required(await tx.get(rref), 'Раунд не найден.');
+      if (action === 'like') {
+        if (!round.visible || !round.likesOpen || round.phase !== 'closed')
+          fail('Этап лайков закрыт.');
+        const id = text(input.responseId, 100);
+        if (!/^[a-f0-9]{64}$/.test(id)) fail('Карточка не найдена.');
+        const ref = rref.collection('responses').doc(id),
+          lref = rref.collection('likes').doc(`${id}_${uid}`);
+        const [ms, rs, ls] = await tx.getAll(mref.collection('members').doc(uid), ref, lref);
+        if (!ms.exists) fail('Нет доступа участника.');
+        const response = required(rs, 'Карточка не найдена.');
+        if (response.moderation !== 'approved' || response.type !== 'open-answers')
+          fail('Карточка скрыта.');
+        const old = value(ls),
+          enabled = input.enabled === true;
+        const previous = old?.revision === response.revision && old.enabled;
+        if (Boolean(previous) === enabled) return { enabled };
+        response.likes = Math.max(0, response.likes + (enabled ? 1 : -1));
+        tx.set(lref, { uid, responseId: id, enabled, revision: response.revision });
+        tx.update(ref, { likes: response.likes });
+        tx.set(rref.collection('published').doc(id), publicResponse(response));
+        return { enabled };
+      }
+      owner(meeting, uid);
+      if (action === 'moderate') {
+        if (
+          !Array.isArray(input.ids) ||
+          input.ids.length < 1 ||
+          input.ids.length > 100 ||
+          !input.ids.every((id) => /^[a-f0-9]{64}$/.test(id))
+        )
+          fail('Выберите от 1 до 100 карточек.');
+        if (!['approved', 'hidden'].includes(input.status)) fail('Неизвестное действие модерации.');
+        const docs = await tx.getAll(
+          ...[...new Set(input.ids)].map((id) => rref.collection('responses').doc(id)),
+        );
+        for (const snap of docs) {
+          const response = required(snap, 'Ответ не найден.');
+          if (!['open-answers', 'word-cloud'].includes(response.type))
+            fail('Этот ответ не требует модерации.');
+          if (input.revisions?.[response.id] !== response.revision)
+            fail('Ответ изменился. Проверьте обновлённый текст перед одобрением.');
+          response.moderation = input.status;
+          if (input.displayValue != null) {
+            if (docs.length !== 1 || input.revision !== response.revision)
+              fail('Ответ изменился; откройте редактор заново.');
+            response.history = [
+              ...response.history,
+              {
+                value: response.value,
+                displayValue: response.displayValue,
+                at: now(),
+                editor: 'host',
+              },
+            ].slice(-20);
+            response.displayValue = responseValue(round.slide, input.displayValue);
+          }
+          tx.set(snap.ref, response);
+          tx.set(
+            rref.collection('private').doc(response.participantId),
+            {
+              answers: { [response.slot]: ownResponse(response) },
+            },
+            { merge: true },
+          );
+          if (round.visible && response.moderation === 'approved')
+            tx.set(rref.collection('published').doc(response.id), publicResponse(response));
+          else tx.delete(rref.collection('published').doc(response.id));
+        }
+        // Hiding content takes precedence over retaining it in a frozen frame.
+        if (input.status === 'hidden') tx.update(roomRef, { frozen: null });
+        return { count: docs.length };
+      }
+      if (action === 'freeze') {
+        const room = required(await tx.get(roomRef), 'Экран не найден.');
+        const published = round.visible ? await tx.get(rref.collection('published')) : null;
+        tx.update(roomRef, {
+          frozen: input.enabled
+            ? {
+                round: publicRound(round),
+                results: published?.docs.map((s) => s.data()) ?? [],
+                capturedAt: now(),
+              }
+            : null,
+        });
+        return { frozen: Boolean(input.enabled), wasFrozen: Boolean(room.frozen) };
+      }
+      if (action === 'close') round.phase = 'closed';
+      else if (action === 'reveal') {
+        if (round.phase !== 'closed') fail('Сначала закройте приём ответов.');
+        const all = await tx.get(rref.collection('responses'));
+        for (const snap of all.docs) {
+          const response = snap.data();
+          if (response.moderation === 'approved')
+            tx.set(rref.collection('published').doc(response.id), publicResponse(response));
+        }
+        round.visible = true;
+      } else if (action === 'likes') {
+        if (round.phase !== 'closed' || !round.visible || round.slide.type !== 'open-answers')
+          fail('Сначала закройте вопрос и откройте карточки.');
+        round.likesOpen = Boolean(input.enabled);
+      } else if (action === 'timer') {
+        if (
+          round.phase !== 'open' ||
+          !Number.isInteger(input.seconds) ||
+          input.seconds < 0 ||
+          input.seconds > 3600
+        )
+          fail('Таймер: от 0 до 3600 секунд для открытого вопроса.');
+        round.deadline = input.seconds
+          ? new Date(Date.now() + input.seconds * 1000).toISOString()
+          : null;
+      } else if (action === 'appearance') {
+        const source = meeting.slides.find((s) => s.id === round.slide.id);
+        if (!source) fail('Слайд удалён из редактора.');
+        for (const key of ['visualization', 'resultDisplay', 'projectorView', 'metricDisplay'])
+          if (source[key] != null) round.slide[key] = source[key];
+      } else fail('Неизвестное действие.');
+      tx.set(rref, round);
+      tx.update(roomRef, { round: publicRound(round) });
+      return { ok: true };
+    });
+  };
+}

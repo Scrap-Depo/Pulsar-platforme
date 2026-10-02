@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function meeting(sid) { return get(/databases/$(database)/documents/meetings/$(sid)).data; }
+    function owner(sid) { return signed() && meeting(sid).ownerUid == request.auth.uid; }
+    function accessible(sid) {
+      return signed() && meeting(sid).status != 'deleting' &&
+        (owner(sid) || exists(/databases/$(database)/documents/meetings/$(sid)/members/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/meetings/$(sid)/viewers/$(request.auth.uid)));
+    }
+    match /meetings/{sid} {
+      allow read: if signed() && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
+      match /members/{uid} { allow read: if owner(sid) || (signed() && uid == request.auth.uid && accessible(sid)); }
+      match /rounds/{rid} {
+        allow read: if owner(sid);
+        match /private/{uid} {
+          allow get: if accessible(sid) && (request.auth.uid == uid || owner(sid));
+        }
+        match /responses/{id} {
+          allow read: if owner(sid) || (accessible(sid) && resource.data.participantId == request.auth.uid);
+        }
+        match /published/{id} {
+          allow read: if accessible(sid) && get(/databases/$(database)/documents/meetings/$(sid)/rounds/$(rid)).data.visible == true;
+        }
+        match /likes/{id} { allow read: if owner(sid) || (accessible(sid) && resource.data.uid == request.auth.uid); }
+      }
+    }
+    match /rooms/{sid} { allow get: if accessible(sid); }
+    // All writes go through authenticated callable functions. Legacy sessions are
+    // intentionally not made accessible by this new application's rules.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

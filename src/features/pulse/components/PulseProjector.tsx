@@ -27,6 +27,9 @@ export default function PulseProjector({
 }: PulseProjectorProps) {
   const items = getPulseItems(distribution);
   const average = getPulseAverage(distribution);
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+  const maxCount = Math.max(1, ...items.map((item) => item.count));
+  const scaleValue = metricDisplay === 'average' ? average : value;
   const showAverage = metricDisplay === 'average' || metricDisplay === 'both';
   const showParticipant = metricDisplay === 'participant' || metricDisplay === 'both';
   const hasMetrics = showAverage || showParticipant;
@@ -48,8 +51,18 @@ export default function PulseProjector({
             alignContent: 'space-between',
           }}
         >
-          <p className="muted" style={{ margin: 0 }}>Среднее по аудитории</p>
-          <strong style={{ fontSize: compact ? (showParticipant ? 28 : 36) : showParticipant ? 44 : 56, lineHeight: 1, marginTop: 12 }}>{average}</strong>
+          <p className="muted" style={{ margin: 0 }}>
+            Среднее по аудитории
+          </p>
+          <strong
+            style={{
+              fontSize: compact ? (showParticipant ? 28 : 36) : showParticipant ? 44 : 56,
+              lineHeight: 1,
+              marginTop: 12,
+            }}
+          >
+            {total ? average : 'Нет ответов'}
+          </strong>
         </div>
       ) : null,
       showParticipant ? (
@@ -63,8 +76,18 @@ export default function PulseProjector({
             alignContent: 'space-between',
           }}
         >
-          <p className="muted" style={{ margin: 0 }}>Ваш ответ</p>
-          <strong style={{ fontSize: compact ? (showAverage ? 24 : 30) : showAverage ? 34 : 48, lineHeight: 1, marginTop: 12 }}>{value}</strong>
+          <p className="muted" style={{ margin: 0 }}>
+            Ваш ответ
+          </p>
+          <strong
+            style={{
+              fontSize: compact ? (showAverage ? 24 : 30) : showAverage ? 34 : 48,
+              lineHeight: 1,
+              marginTop: 12,
+            }}
+          >
+            {value}
+          </strong>
         </div>
       ) : null,
     ].filter(Boolean);
@@ -91,7 +114,7 @@ export default function PulseProjector({
             points={items
               .map((item, index) => {
                 const x = 40 + index * 90;
-                const y = 270 - item.count * 18;
+                const y = 270 - (item.count / maxCount) * 230;
                 return `${x},${Math.max(y, 40)}`;
               })
               .join(' ')}
@@ -103,7 +126,7 @@ export default function PulseProjector({
           />
           {items.map((item, index) => {
             const x = 40 + index * 90;
-            const y = Math.max(270 - item.count * 18, 40);
+            const y = Math.max(270 - (item.count / maxCount) * 230, 40);
 
             return (
               <g key={item.value}>
@@ -134,7 +157,7 @@ export default function PulseProjector({
             style={{
               position: 'absolute',
               top: compact ? 0 : 2,
-              left: `calc(${((Math.max(value, 1) - 1) / 9) * 100}% - ${compact ? 8 : 10}px)`,
+              left: `calc(${((Math.max(scaleValue, 1) - 1) / 9) * 100}% - ${compact ? 8 : 10}px)`,
               width: compact ? 16 : 20,
               height: compact ? 16 : 20,
               borderRadius: '50%',
@@ -142,11 +165,28 @@ export default function PulseProjector({
               boxShadow: '0 8px 24px rgba(255,255,255,0.18)',
             }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: compact ? 10 : 14, color: '#cbd5e1', fontWeight: 700, fontSize: compact ? 12 : 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: compact ? 10 : 14,
+              color: '#cbd5e1',
+              fontWeight: 700,
+              fontSize: compact ? 12 : 16,
+            }}
+          >
             <span>{minLabel}</span>
             <span>{maxLabel}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, color: '#94a3b8', fontSize: compact ? 11 : 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: 8,
+              color: '#94a3b8',
+              fontSize: compact ? 11 : 16,
+            }}
+          >
             {items.map((item) => (
               <span key={item.value}>{item.value}</span>
             ))}
@@ -172,7 +212,7 @@ export default function PulseProjector({
             <div
               className="card"
               style={{
-                height: `${Math.max(item.count * 6, 32)}px`,
+                height: `${item.count === 0 ? 4 : Math.max((item.count / maxCount) * (compact ? 140 : 220), 28)}px`,
                 minHeight: compact ? 24 : undefined,
                 display: 'flex',
                 alignItems: 'flex-end',
@@ -183,7 +223,9 @@ export default function PulseProjector({
             >
               {item.count}
             </div>
-            <p className="muted" style={{ fontSize: compact ? 11 : undefined }}>{item.value}</p>
+            <p className="muted" style={{ fontSize: compact ? 11 : undefined }}>
+              {item.value}
+            </p>
           </div>
         ))}
       </div>
@@ -192,9 +234,29 @@ export default function PulseProjector({
 
   return (
     <div style={{ width: '100%', maxWidth: compact ? '100%' : 920 }}>
-      {!compact && <p className="muted" style={{ textAlign: 'center' }}>Проектор</p>}
-      <h1 className="hero-title" style={{ textAlign: 'center', fontSize: compact ? 22 : undefined, lineHeight: compact ? 1.15 : undefined }}>{title}</h1>
-      <p className="hero-text" style={{ textAlign: 'center', margin: compact ? '0 auto 10px' : '0 auto 16px', fontSize: compact ? 14 : undefined }}>
+      {!compact && (
+        <p className="muted" style={{ textAlign: 'center' }}>
+          Проектор
+        </p>
+      )}
+      <h1
+        className="hero-title"
+        style={{
+          textAlign: 'center',
+          fontSize: compact ? 22 : undefined,
+          lineHeight: compact ? 1.15 : undefined,
+        }}
+      >
+        {title}
+      </h1>
+      <p
+        className="hero-text"
+        style={{
+          textAlign: 'center',
+          margin: compact ? '0 auto 10px' : '0 auto 16px',
+          fontSize: compact ? 14 : undefined,
+        }}
+      >
         {minLabel} {'->'} {maxLabel}
       </p>
 
@@ -202,15 +264,35 @@ export default function PulseProjector({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: hasMetrics ? compact ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)' : 'minmax(0, 1.62fr) minmax(240px, 1fr)' : 'minmax(0, 1fr)',
+            gridTemplateColumns: hasMetrics
+              ? compact
+                ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)'
+                : 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))'
+              : 'minmax(0, 1fr)',
             gap: compact ? 10 : 18,
             alignItems: 'stretch',
           }}
         >
-          <div className="card" style={{ padding: compact ? 14 : 24, minHeight: compact ? 150 : 250, display: 'grid', alignContent: 'center', gap: compact ? 8 : 14 }}>
-            <p className="muted" style={{ margin: 0, textAlign: 'center' }}>Главный показатель слайда</p>
-            <strong style={{ fontSize: compact ? 42 : 72, lineHeight: 1, textAlign: 'center' }}>{showAverage ? average : value}</strong>
-            <p className="hero-text" style={{ textAlign: 'center', margin: 0, fontSize: compact ? 12 : undefined }}>
+          <div
+            className="card"
+            style={{
+              padding: compact ? 14 : 24,
+              minHeight: compact ? 150 : 250,
+              display: 'grid',
+              alignContent: 'center',
+              gap: compact ? 8 : 14,
+            }}
+          >
+            <p className="muted" style={{ margin: 0, textAlign: 'center' }}>
+              Главный показатель слайда
+            </p>
+            <strong style={{ fontSize: compact ? 42 : 72, lineHeight: 1, textAlign: 'center' }}>
+              {showAverage ? (total ? average : 'Нет ответов') : value}
+            </strong>
+            <p
+              className="hero-text"
+              style={{ textAlign: 'center', margin: 0, fontSize: compact ? 12 : undefined }}
+            >
               {showAverage ? 'Среднее значение по аудитории' : 'Ответ выбранного участника'}
             </p>
           </div>
@@ -220,7 +302,11 @@ export default function PulseProjector({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: hasMetrics ? compact ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)' : 'minmax(0, 1.62fr) minmax(240px, 1fr)' : 'minmax(0, 1fr)',
+            gridTemplateColumns: hasMetrics
+              ? compact
+                ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)'
+                : 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))'
+              : 'minmax(0, 1fr)',
             gap: compact ? 10 : 18,
             alignItems: 'stretch',
           }}
@@ -232,7 +318,11 @@ export default function PulseProjector({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: hasMetrics ? compact ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)' : 'minmax(0, 1.62fr) minmax(240px, 1fr)' : 'minmax(0, 1fr)',
+            gridTemplateColumns: hasMetrics
+              ? compact
+                ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)'
+                : 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))'
+              : 'minmax(0, 1fr)',
             gap: compact ? 10 : 18,
             alignItems: 'stretch',
           }}
@@ -244,7 +334,11 @@ export default function PulseProjector({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: hasMetrics ? compact ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)' : 'minmax(0, 1.62fr) minmax(240px, 1fr)' : 'minmax(0, 1fr)',
+            gridTemplateColumns: hasMetrics
+              ? compact
+                ? 'minmax(0, 0.95fr) minmax(120px, 0.9fr)'
+                : 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))'
+              : 'minmax(0, 1fr)',
             gap: compact ? 10 : 18,
             alignItems: 'stretch',
           }}

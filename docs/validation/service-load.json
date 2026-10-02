@@ -1,0 +1,26 @@
+[
+  {
+    "type": "multiple-choice",
+    "answers": 100,
+    "elapsedMs": 58,
+    "p95Ms": 58
+  },
+  {
+    "type": "open-answers",
+    "answers": 100,
+    "elapsedMs": 50,
+    "p95Ms": 50
+  },
+  {
+    "type": "pulse",
+    "answers": 100,
+    "elapsedMs": 50,
+    "p95Ms": 50
+  },
+  {
+    "type": "word-cloud",
+    "answers": 100,
+    "elapsedMs": 49,
+    "p95Ms": 49
+  }
+]

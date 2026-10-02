@@ -1,6 +1,9 @@
 import { MultipleChoiceOption } from '../model/types';
 import { getVotePercent, sortOptionsByVotes } from '../model/utils';
-import { MultipleChoiceResultDisplay, MultipleChoiceVisualization } from '../../../shared/types/common';
+import {
+  MultipleChoiceResultDisplay,
+  MultipleChoiceVisualization,
+} from '../../../shared/types/common';
 
 type MultipleChoiceProjectorProps = {
   question: string;
@@ -21,7 +24,7 @@ export default function MultipleChoiceProjector({
   const total = sorted.reduce((sum, option) => sum + option.votes, 0);
   const chartColors = ['#38bdf8', '#2563eb', '#a855f7', '#f97316', '#22c55e', '#f43f5e'];
   const chartSize = compact ? 150 : 340;
-  const chartInset = compact ? 34 : 72;
+  const chartInset = '21%';
   const chartCardMinHeight = compact ? 190 : 440;
   const cardPadding = compact ? 14 : 28;
   const optionPadding = compact ? 14 : 20;
@@ -42,19 +45,17 @@ export default function MultipleChoiceProjector({
   }
 
   if (visualization === 'pie' || visualization === 'donut') {
-    const gradientStops = sorted
-      .reduce<{ stops: string[]; offset: number }>(
-        (accumulator, option, index) => {
-          const percent = getVotePercent(option.votes, total);
-          const nextOffset = accumulator.offset + percent;
-          const color = chartColors[index % chartColors.length];
-          accumulator.stops.push(`${color} ${accumulator.offset}% ${nextOffset}%`);
-          accumulator.offset = nextOffset;
-          return accumulator;
-        },
-        { stops: [], offset: 0 },
-      )
-      .stops;
+    const gradientStops = sorted.reduce<{ stops: string[]; offset: number }>(
+      (accumulator, option, index) => {
+        const percent = total ? (option.votes / total) * 100 : 0;
+        const nextOffset = accumulator.offset + percent;
+        const color = chartColors[index % chartColors.length];
+        accumulator.stops.push(`${color} ${accumulator.offset}% ${nextOffset}%`);
+        accumulator.offset = nextOffset;
+        return accumulator;
+      },
+      { stops: [], offset: 0 },
+    ).stops;
 
     const chartBackground =
       total > 0
@@ -63,14 +64,26 @@ export default function MultipleChoiceProjector({
 
     return (
       <div style={{ width: '100%', maxWidth: 920 }}>
-        <p className="muted" style={{ textAlign: 'center' }}>Проектор</p>
-        <h1 className="hero-title" style={titleStyle}>{question}</h1>
+        <p className="muted" style={{ textAlign: 'center' }}>
+          Проектор
+        </p>
+        <h1 className="hero-title" style={titleStyle}>
+          {question}
+        </h1>
         <div className="feature-grid" style={{ alignItems: 'center', gap: compact ? 12 : 20 }}>
-          <div className="card" style={{ padding: cardPadding, display: 'grid', placeItems: 'center', minHeight: chartCardMinHeight }}>
+          <div
+            className="card"
+            style={{
+              padding: cardPadding,
+              display: 'grid',
+              placeItems: 'center',
+              minHeight: chartCardMinHeight,
+            }}
+          >
             <div
               style={{
-                width: chartSize,
-                height: chartSize,
+                width: `min(100%, ${chartSize}px)`,
+                aspectRatio: '1',
                 borderRadius: '50%',
                 background: chartBackground,
                 position: 'relative',
@@ -97,19 +110,27 @@ export default function MultipleChoiceProjector({
             </div>
           </div>
           <div className="section-stack">
-            {sorted.map((option) => {
+            {sorted.map((option, index) => {
               const percent = getVotePercent(option.votes, total);
 
               return (
                 <div key={option.id} className="card" style={{ padding: optionPadding }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                      alignItems: 'center',
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span
                         style={{
                           width: 14,
                           height: 14,
                           borderRadius: '50%',
-                          background: option.color,
+                          background: chartColors[index % chartColors.length],
                           display: 'inline-block',
                         }}
                       />
@@ -128,15 +149,26 @@ export default function MultipleChoiceProjector({
 
   return (
     <div style={{ width: '100%', maxWidth: 920 }}>
-      <p className="muted" style={{ textAlign: 'center' }}>Проектор</p>
-      <h1 className="hero-title" style={titleStyle}>{question}</h1>
+      <p className="muted" style={{ textAlign: 'center' }}>
+        Проектор
+      </p>
+      <h1 className="hero-title" style={titleStyle}>
+        {question}
+      </h1>
       <div className="section-stack">
         {sorted.map((option) => {
           const percent = getVotePercent(option.votes, total);
 
           return (
             <div key={option.id} className="card" style={{ padding: optionPadding }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
                 <strong>{option.text}</strong>
                 <span className="muted">{getResultLabel(option, percent)}</span>
               </div>

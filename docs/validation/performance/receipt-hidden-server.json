@@ -1,0 +1,30 @@
+[
+  {
+    "type": "multiple-choice",
+    "calls": 100,
+    "p95ServerMs": 91,
+    "p95ReadMs": 18,
+    "maxTransactionAttempts": 1
+  },
+  {
+    "type": "open-answers",
+    "calls": 100,
+    "p95ServerMs": 155,
+    "p95ReadMs": 45,
+    "maxTransactionAttempts": 1
+  },
+  {
+    "type": "pulse",
+    "calls": 100,
+    "p95ServerMs": 151,
+    "p95ReadMs": 47,
+    "maxTransactionAttempts": 1
+  },
+  {
+    "type": "word-cloud",
+    "calls": 100,
+    "p95ServerMs": 166,
+    "p95ReadMs": 50,
+    "maxTransactionAttempts": 1
+  }
+]

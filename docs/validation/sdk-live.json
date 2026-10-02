@@ -1,0 +1,34 @@
+[
+  {
+    "type": "multiple-choice",
+    "clients": 100,
+    "p95ConfirmationMs": 19614,
+    "allResultsSeenBy95PercentMs": 40375,
+    "allResultsSeenByAllMs": 40491,
+    "confirmed": 100
+  },
+  {
+    "type": "open-answers",
+    "clients": 100,
+    "p95ConfirmationMs": 13695,
+    "allResultsSeenBy95PercentMs": 25351,
+    "allResultsSeenByAllMs": 25559,
+    "confirmed": 100
+  },
+  {
+    "type": "pulse",
+    "clients": 100,
+    "p95ConfirmationMs": 12109,
+    "allResultsSeenBy95PercentMs": 20180,
+    "allResultsSeenByAllMs": 20314,
+    "confirmed": 100
+  },
+  {
+    "type": "word-cloud",
+    "clients": 100,
+    "p95ConfirmationMs": 11995,
+    "allResultsSeenBy95PercentMs": 24875,
+    "allResultsSeenByAllMs": 24954,
+    "confirmed": 100
+  }
+]

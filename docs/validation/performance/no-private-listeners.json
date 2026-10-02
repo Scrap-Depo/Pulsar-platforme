@@ -1,0 +1,22 @@
+{
+  "measuredAt": "2026-10-02T07:53:20.605Z",
+  "functionPort": 5002,
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "mode": "live",
+      "clients": 100,
+      "publicObservers": 1,
+      "privateListeners": false,
+      "p95ConfirmationMs": 214,
+      "p95OwnSnapshotMs": null,
+      "allResultsSeenBy95PercentMs": 359,
+      "allResultsSeenByAllMs": 359,
+      "confirmed": 100
+    }
+  ]
+}

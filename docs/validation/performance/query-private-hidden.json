@@ -1,0 +1,61 @@
+{
+  "measuredAt": "2026-10-02T07:51:22.899Z",
+  "functionPort": 5002,
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "p95ConfirmationMs": 3875,
+      "p95OwnSnapshotMs": 3198,
+      "allResultsSeenBy95PercentMs": 748,
+      "allResultsSeenByAllMs": 755,
+      "confirmed": 100
+    },
+    {
+      "type": "open-answers",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "p95ConfirmationMs": 4065,
+      "p95OwnSnapshotMs": 2996,
+      "allResultsSeenBy95PercentMs": 748,
+      "allResultsSeenByAllMs": 755,
+      "confirmed": 100
+    },
+    {
+      "type": "pulse",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "p95ConfirmationMs": 4301,
+      "p95OwnSnapshotMs": 3597,
+      "allResultsSeenBy95PercentMs": 769,
+      "allResultsSeenByAllMs": 770,
+      "confirmed": 100
+    },
+    {
+      "type": "word-cloud",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "p95ConfirmationMs": 4540,
+      "p95OwnSnapshotMs": 3900,
+      "allResultsSeenBy95PercentMs": 754,
+      "allResultsSeenByAllMs": 778,
+      "confirmed": 100
+    }
+  ]
+}

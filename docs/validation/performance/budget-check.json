@@ -1,0 +1,70 @@
+{
+  "measuredAt": "2026-10-02T08:17:39.407Z",
+  "functionPort": 5002,
+  "runner": "single-process-framework",
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 323,
+      "p95OwnSnapshotMs": 324,
+      "allResultsSeenBy95PercentMs": 770,
+      "allResultsSeenByAllMs": 789,
+      "confirmed": 100,
+      "withinLocalBudget": true
+    },
+    {
+      "type": "open-answers",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 325,
+      "p95OwnSnapshotMs": 329,
+      "allResultsSeenBy95PercentMs": 761,
+      "allResultsSeenByAllMs": 762,
+      "confirmed": 100,
+      "withinLocalBudget": true
+    },
+    {
+      "type": "pulse",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 321,
+      "p95OwnSnapshotMs": 324,
+      "allResultsSeenBy95PercentMs": 781,
+      "allResultsSeenByAllMs": 789,
+      "confirmed": 100,
+      "withinLocalBudget": true
+    },
+    {
+      "type": "word-cloud",
+      "iteration": 1,
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 383,
+      "p95OwnSnapshotMs": 389,
+      "allResultsSeenBy95PercentMs": 831,
+      "allResultsSeenByAllMs": 858,
+      "confirmed": 100,
+      "withinLocalBudget": true
+    }
+  ]
+}

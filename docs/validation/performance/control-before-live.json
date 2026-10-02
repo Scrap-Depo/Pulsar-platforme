@@ -1,0 +1,53 @@
+{
+  "measuredAt": "2026-10-02T07:49:46.637Z",
+  "functionPort": 5002,
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "mode": "live",
+      "clients": 100,
+      "p95ConfirmationMs": 8779,
+      "p95OwnSnapshotMs": 28606,
+      "allResultsSeenBy95PercentMs": 30307,
+      "allResultsSeenByAllMs": 30389,
+      "confirmed": 100
+    },
+    {
+      "type": "open-answers",
+      "iteration": 1,
+      "mode": "live",
+      "clients": 100,
+      "p95ConfirmationMs": 9496,
+      "p95OwnSnapshotMs": 10440,
+      "allResultsSeenBy95PercentMs": 11494,
+      "allResultsSeenByAllMs": 11645,
+      "confirmed": 100
+    },
+    {
+      "type": "pulse",
+      "iteration": 1,
+      "mode": "live",
+      "clients": 100,
+      "p95ConfirmationMs": 9821,
+      "p95OwnSnapshotMs": 22921,
+      "allResultsSeenBy95PercentMs": 24223,
+      "allResultsSeenByAllMs": 24313,
+      "confirmed": 100
+    },
+    {
+      "type": "word-cloud",
+      "iteration": 1,
+      "mode": "live",
+      "clients": 100,
+      "p95ConfirmationMs": 11462,
+      "p95OwnSnapshotMs": 17692,
+      "allResultsSeenBy95PercentMs": 19106,
+      "allResultsSeenByAllMs": 19173,
+      "confirmed": 100
+    }
+  ]
+}

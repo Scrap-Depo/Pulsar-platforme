@@ -30,12 +30,12 @@ export function mergeParticipantWord(words: WordCloudItem[], participantWord: st
   if (existingIndex >= 0) {
     nextWords[existingIndex] = {
       ...nextWords[existingIndex],
-      count: nextWords[existingIndex].count + 10,
+      count: nextWords[existingIndex].count + 1,
     };
   } else {
     nextWords.push({
       text: normalizedWord,
-      count: 25,
+      count: 1,
       color: '#f8fafc',
     });
   }

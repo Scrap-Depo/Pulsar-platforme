@@ -44,7 +44,7 @@ export default function WordCloudProjector({
       <p className="muted">Проектор</p>
       <h1 className="hero-title">{title}</h1>
       <p className="hero-text" style={{ margin: '0 auto 24px' }}>
-        {participantWord.trim() ? `Новое слово: ${participantWord.trim()}` : 'Добавьте слово с экрана участника'}
+        {participantWord.trim() ? `Новое слово: ${participantWord.trim()}` : 'Опубликованные ответы участников'}
       </p>
       <div
         className="card"
@@ -57,7 +57,9 @@ export default function WordCloudProjector({
           <span
             key={word.text}
             style={{
-              fontSize: visualization === 'constellation' ? `${16 + word.count * 0.8}px` : `${18 + word.count * 1.4}px`,
+              fontSize: `${Math.min(visualization === 'constellation' ? 48 : 80, 20 + Math.sqrt(word.count) * 6)}px`,
+              overflowWrap: 'anywhere',
+              maxWidth: '100%',
               fontWeight: 700,
               color: word.color,
               padding: visualization === 'bubbles' ? '18px 22px' : visualization === 'constellation' ? '18px' : undefined,
@@ -71,7 +73,7 @@ export default function WordCloudProjector({
               border: visualization === 'cloud' ? undefined : '1px solid rgba(148, 163, 184, 0.16)',
             }}
           >
-            {word.text}
+            {word.text} <small style={{ fontSize: 14 }}>({word.count})</small>
           </span>
         ))}
       </div>

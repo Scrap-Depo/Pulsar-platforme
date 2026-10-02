@@ -5,20 +5,39 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "tsc --project tsconfig.app.json --noEmit --incremental false && vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/domain.test.mjs",
+    "test:integration": "node --test tests/integration.test.mjs",
+    "test:browser": "playwright test",
+    "dev:emulators": "firebase emulators:start --project demo-pulsar",
+    "test:load": "node tests/load-client.mjs",
+    "dev:load-server": "node tests/serve-callable.mjs"
   },
   "dependencies": {
     "firebase": "^12.11.0",
     "lucide-react": "^0.542.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@google-cloud/functions-framework": "^5.0.5",
+    "@playwright/test": "^1.63.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "firebase-tools": "^15.32.1",
+    "prettier": "^3.9.9",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.5",
+    "cloudevents": {
+      "uuid": "^11.1.1"
+    }
   }
 }
