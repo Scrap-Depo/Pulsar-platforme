@@ -886,6 +886,12 @@ test('reflection template shows others cards after answering and allows only oth
   const link = (await host
     .getByRole('link', { name: 'Вход участника', exact: true })
     .getAttribute('href'))!;
+  const projector = await context.newPage();
+  await projector.goto(
+    (await host
+      .getByRole('link', { name: 'Открыть экран проектора', exact: true })
+      .getAttribute('href'))!,
+  );
   const firstContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const secondContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const first = await firstContext.newPage();
@@ -906,6 +912,14 @@ test('reflection template shows others cards after answering and allows only oth
   const other = ideas.locator('article').filter({ hasText: 'Идея второго участника' });
   await expect(mine.getByRole('button')).toHaveCount(0);
   await other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
+  await expect(projector.locator('.like-burst')).toHaveCount(1);
+  await expect(projector.locator('.like-burst')).toHaveCSS('animation-name', 'like-float');
+  await expect(first.locator('.like-burst')).toHaveCount(0);
+  await expect(second.locator('.like-burst')).toHaveCount(0);
+  await expect(projector.locator('.like-burst')).toHaveCount(0);
+  await projector.reload();
+  await expect(projector.getByText('Идея второго участника', { exact: true })).toBeVisible();
+  await expect(projector.locator('.like-burst')).toHaveCount(0);
   await expect(other.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',

@@ -7,6 +7,7 @@ import { command, message } from '../shared/lib/liveApi';
 import ResponseForm from './ResponseForm';
 import LiveResults from './LiveResults';
 import JoinQr from '../shared/ui/JoinQr';
+import LiveLikeReaction from './LiveLikeReaction';
 export default function Audience({ user, viewer }: { user: User; viewer: boolean }) {
   const [code, setCode] = useState(new URLSearchParams(location.search).get('code') ?? '');
   const [editingCode, setEditingCode] = useState(!new URLSearchParams(location.search).get('code'));
@@ -217,6 +218,7 @@ function Connected({
             </p>
           </aside>
         </div>
+        <LiveLikeReaction roundId={round.id} results={published.data} loaded={published.loaded} />
         {published.error ? (
           <p role="alert">{published.error}</p>
         ) : (
