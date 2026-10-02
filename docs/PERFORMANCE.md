@@ -68,3 +68,11 @@ PULSAR_FUNCTION_PORT=5002 PULSAR_LOAD_MODE=hidden PULSAR_LOAD_REPEATS=2 PULSAR_L
 - [Firebase о различиях эмулятора и production](https://firebase.google.com/docs/emulator-suite/connect_functions).
 - [Параллельность функций второго поколения](https://firebase.google.com/docs/functions/manage-functions).
 - [Официальный Functions Framework](https://github.com/GoogleCloudPlatform/functions-framework-nodejs): testing API `getTestServer` запускает тот же экспорт `pulsar`.
+
+## Настройка готовности и отдельная проверка первого всплеска
+
+В конфигурации функции подготовлены 1 CPU, 512 MiB и `concurrency: 100`. Параметр `PULSAR_MIN_INSTANCES` имеет безопасное значение по умолчанию `0`; готовый экземпляр включается значением `1` при согласованной публикации в выбранный проект. Облачный стенд не выбран, параметры в облаке не менялись. Настройки не гарантируют скорость и не устраняют ограничения локального эмулятора.
+
+Команда `npm run test:first-burst` проверяет два пакета по 100 ответов в скрытом голосовании и завершает тест ошибкой при превышении порога. Последний запуск сохранил и доставил все 200 ответов: P95 подтверждения первого пакета 5,922 с, повторного 0,596 с; раскрытия — 0,822 и 0,762 с. Критерий первого пакета **не пройден**. [Отчёт](validation/performance/runtime-first-burst.json).
+
+Отчёт явно содержит `coldStartVerified: false` и `setupCallsBeforeFirstBurst: true`: подготовительные вызовы уже обращались к функции. Это проверка первого массового пакета, а не подтверждённый замер холодного облачного запуска. Перед мероприятием использовать [порядок проверки](EVENT-RUNBOOK.md), включая лимит регистрации с одного IP.

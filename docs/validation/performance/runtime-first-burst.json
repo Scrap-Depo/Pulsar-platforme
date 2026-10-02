@@ -1,0 +1,44 @@
+{
+  "measuredAt": "2026-10-02T08:26:54.603Z",
+  "functionPort": 5001,
+  "runner": "functions-emulator",
+  "clients": 100,
+  "roomListenersKept": true,
+  "hostAnswersListener": true,
+  "coldStartVerified": false,
+  "setupCallsBeforeFirstBurst": true,
+  "measurements": [
+    {
+      "type": "multiple-choice",
+      "iteration": 1,
+      "burst": "first-in-run",
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 5922,
+      "p95OwnSnapshotMs": 5922,
+      "allResultsSeenBy95PercentMs": 822,
+      "allResultsSeenByAllMs": 823,
+      "confirmed": 100,
+      "withinLocalBudget": false
+    },
+    {
+      "type": "multiple-choice",
+      "iteration": 2,
+      "burst": "subsequent-in-run",
+      "mode": "hidden",
+      "clients": 100,
+      "publicObservers": 100,
+      "privateListeners": true,
+      "privateMode": "document",
+      "p95ConfirmationMs": 596,
+      "p95OwnSnapshotMs": 596,
+      "allResultsSeenBy95PercentMs": 762,
+      "allResultsSeenByAllMs": 793,
+      "confirmed": 100,
+      "withinLocalBudget": true
+    }
+  ]
+}

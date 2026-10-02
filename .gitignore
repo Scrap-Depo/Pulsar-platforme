@@ -3,6 +3,9 @@ dist/
 .vercel/
 .DS_Store
 *.local
+functions/.env
+functions/.env.*
+!functions/.env.example
 *.tsbuildinfo
 firebase-debug.log*
 firestore-debug.log*

@@ -12,7 +12,11 @@
     "test:browser": "playwright test",
     "dev:emulators": "firebase emulators:start --project demo-pulsar",
     "test:load": "node tests/load-client.mjs",
-    "dev:load-server": "node tests/serve-callable.mjs"
+    "test:first-burst": "PULSAR_LOAD_MODE=hidden PULSAR_LOAD_TYPE=multiple-choice PULSAR_LOAD_REPEATS=2 PULSAR_LOAD_ASSERT_BUDGET=true node tests/load-client.mjs",
+    "dev:load-server": "node tests/serve-callable.mjs",
+    "prepare:transition": "node scripts/build-transition-rules.mjs",
+    "check:transition": "node scripts/build-transition-rules.mjs --check",
+    "test:transition": "node --test tests/transition.test.mjs"
   },
   "dependencies": {
     "firebase": "^12.11.0",

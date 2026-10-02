@@ -1,0 +1,10 @@
+{
+  "functions": { "source": "functions" },
+  "firestore": { "rules": "deployment/pulsar-5692c/firestore.rules" },
+  "hosting": {
+    "site": "pulsar-5692c",
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  }
+}

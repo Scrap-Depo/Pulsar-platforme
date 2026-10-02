@@ -1,0 +1,30 @@
+{
+  "projectId": "pulsar-5692c",
+  "checkedAt": "2026-10-02T08:31:41.457Z",
+  "billingEnabled": false,
+  "auth": {
+    "email": {
+      "enabled": true
+    },
+    "anonymous": {
+      "enabled": true
+    }
+  },
+  "authorizedDomains": [
+    "localhost",
+    "pulsar-5692c.firebaseapp.com",
+    "pulsar-5692c.web.app"
+  ],
+  "databaseRegion": "eur3",
+  "collections": [
+    "sessions"
+  ],
+  "legacyDocumentPresent": true,
+  "newMeetingsPresent": false,
+  "cloudFunctionsApiAccessible": false,
+  "cloudFunctionsApiError": "API disabled or not previously used (403)",
+  "rulesetName": "projects/pulsar-5692c/rulesets/5093efa4-89db-49ff-a5ee-88bbdf0b285d",
+  "rulesUpdatedAt": "2026-04-01T16:55:10.584883Z",
+  "previousRulesSha256": "601bed2ac4310d5873341c8e6f1a323737949095949118cd45b9baf87db9a0c3",
+  "cloudMutationsPerformed": false
+}

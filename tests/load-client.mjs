@@ -225,6 +225,7 @@ try {
       measurements.push({
         type: slide.type,
         iteration,
+        burst: measurements.length === 0 ? 'first-in-run' : 'subsequent-in-run',
         mode: immediate ? 'live' : 'hidden',
         clients: 100,
         publicObservers: observerCount,
@@ -260,6 +261,8 @@ try {
         clients: 100,
         roomListenersKept: true,
         hostAnswersListener: true,
+        coldStartVerified: false,
+        setupCallsBeforeFirstBurst: true,
         measurements,
       },
       null,
