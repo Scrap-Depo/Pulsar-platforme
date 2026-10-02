@@ -513,7 +513,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             {draft.slides.map((s, i) => {
               const Icon = slideIcons[s.type];
               return (
-                <div className="slide-card" key={s.id}>
+                <div className={`slide-card${s.id === current.id ? ' is-selected' : ''}`} key={s.id}>
                   <div className="question-actions" role="group" aria-label={`Действия с вопросом ${i + 1}`}>
                     <button
                       type="button"
@@ -522,7 +522,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       disabled={i === 0}
                       onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'up') })}
                     >
-                      <ArrowUp size={18} aria-hidden="true" />
+                      <ArrowUp size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -531,7 +531,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       disabled={i === draft.slides.length - 1}
                       onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'down') })}
                     >
-                      <ArrowDown size={18} aria-hidden="true" />
+                      <ArrowDown size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -539,7 +539,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       title="Создать копию вопроса"
                       onClick={() => patch({ slides: duplicateSlide(draft.slides, s.id) })}
                     >
-                      <Copy size={18} aria-hidden="true" />
+                      <Copy size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -556,7 +556,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                         })
                       }
                     >
-                      <Trash2 size={18} aria-hidden="true" />
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
                   <button

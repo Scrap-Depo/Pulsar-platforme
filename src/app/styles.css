@@ -1631,12 +1631,17 @@ a {
 .countdown { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .countdown.expired { color: var(--danger); }
 
-.slide-list > .slide-card { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; padding: 8px; border: 1px solid var(--border-soft); border-radius: var(--radius); position: relative; }
-.live-shell .slide-select { min-width: 0; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; margin: 0; }
+.slide-list > .slide-card { display: flex; flex-direction: column; gap: 0; margin: 8px 0; padding: 6px; border: 1px solid var(--border-soft); border-radius: var(--radius); background: var(--control); position: relative; }
+.slide-list > .slide-card.is-selected { border-color: var(--accent); background: var(--accent-bg); }
+.live-shell .slide-select, .live-shell .slide-select[aria-pressed="true"] { min-width: 0; display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px 10px; text-align: left; margin: 0; border: 0; background: transparent; }
 .slide-select svg { flex-shrink: 0; }
-.question-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; width: 100%; }
-.live-shell .question-actions button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; }
+.question-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; width: 100%; }
+.live-shell .question-actions button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); }
+.live-shell .question-actions button.danger { background: transparent; color: var(--danger); }
+.live-shell .question-actions button:hover:not(:disabled) { background: rgba(255,255,255,.1); color: var(--text-strong); }
+.live-shell .question-actions button.danger:hover:not(:disabled) { color: var(--danger); background: rgba(248,113,113,.12); }
 .question-actions button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+@media (pointer: coarse) { .live-shell .question-actions button { flex-basis: 40px; width: 40px; height: 40px; min-height: 40px; } }
 .type-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .live-shell .type-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .template-list { margin-top: 12px; }
