@@ -187,6 +187,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       if (action === 'open') setOpenRequest(null);
       const notices: Record<string, string> = {
         open: 'Вопрос запущен. Участники могут отвечать.',
+        navigate: result.restored
+          ? 'Показаны сохранённые ответы. Новый сбор не начат.'
+          : 'Вопрос запущен. Участники могут отвечать.',
         save: 'Вопросы и название встречи сохранены.',
         close: 'Сбор ответов завершён.',
         reveal: 'Результаты показаны участникам.',
@@ -238,6 +241,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     patch({ slides: draft!.slides.map((s) => (s.id === slide.id ? slide : s)) });
   }
   function add(type: SlideType, template?: string) {
+    if (busyRef.current) return;
     const slide = template
       ? createTemplateSlide(template, draft!.slides.length)
       : createSlide(type, draft!.slides.length);
@@ -249,20 +253,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   async function launchFromLive(slide: SessionSlide) {
     if (busyRef.current || navigationRef.current || !online || finished) return;
     setNavigationError('');
-    if (round?.slide.id === slide.id && round.phase === 'open') return;
-    const problem = launchProblem(slide);
+    if (round?.slide.id === slide.id) return;
+    const problem = rounds.data.some((r) => r.slide.id === slide.id) ? null : launchProblem(slide);
     if (problem) {
       setNavigationError(`«${slide.title || 'Без названия'}»: ${problem}`);
       return;
     }
-    if (
-      rounds.data.some((r) => r.slide.id === slide.id) &&
-      navigationRequest.current?.slideId !== slide.id &&
-      !window.confirm(
-        'Задать вопрос повторно? Начнётся новый сбор. Предыдущие ответы останутся в истории.',
-      )
-    )
-      return;
     navigationRef.current = true;
     try {
       if (dirty) {
@@ -282,7 +278,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           ? navigationRequest.current
           : { slideId: slide.id, requestId: crypto.randomUUID() };
       navigationRequest.current = request;
-      const opened = await run('open', { ...request, settings: questionLaunchSettings(slide) });
+      const opened = await run('navigate', { ...request, settings: questionLaunchSettings(slide) });
       if (opened) {
         navigationRequest.current = null;
         setDraft((previous) => (previous ? { ...previous, currentSlideId: slide.id } : previous));
@@ -684,7 +680,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               {slideTypes.map(([type, label]) => {
                 const Icon = slideIcons[type];
                 return (
-                  <button key={type} className="type-tile" onClick={() => add(type)}>
+                  <button
+                    key={type}
+                    className="type-tile"
+                    disabled={busy}
+                    onClick={() => add(type)}
+                  >
                     <Icon size={22} aria-hidden="true" />
                     {label}
                   </button>
@@ -694,7 +695,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             <details className="template-list">
               <summary>Шаблоны вопросов</summary>
               {slideTemplates.map((t) => (
-                <button key={t.id} title={t.description} onClick={() => add(t.type, t.id)}>
+                <button
+                  key={t.id}
+                  title={t.description}
+                  disabled={busy}
+                  onClick={() => add(t.type, t.id)}
+                >
                   {t.label}
                 </button>
               ))}

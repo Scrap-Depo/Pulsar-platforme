@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
-import { ThumbsUp } from 'lucide-react';
+import LikeIcon from '../shared/ui/LikeIcon';
 import { Room, PublicResponse, OwnAnswers } from '../shared/types/live';
 import { useLiveDoc, useLiveList, useOnline } from '../shared/hooks/useLiveData';
 import { command, message } from '../shared/lib/liveApi';
@@ -298,7 +298,7 @@ function Connected({
                         className="idea-like-count"
                         aria-label={`Ваш ответ · Лайков: ${r.likes}`}
                       >
-                        <ThumbsUp size={20} aria-hidden="true" />
+                        <LikeIcon size={20} />
                         <span>{r.likes}</span>
                       </span>
                     </div>
@@ -317,7 +317,7 @@ function Connected({
                       aria-pressed={enabled}
                       onClick={() => void toggle(r, !enabled)}
                     >
-                      <ThumbsUp size={20} aria-hidden="true" />
+                      <LikeIcon size={20} />
                       <span>{r.likes}</span>
                     </button>
                   )}

@@ -879,6 +879,10 @@ test('reflection template shows others cards after answering and allows only oth
   await host.getByLabel('Пароль', { exact: true }).fill('test-reflection-password');
   await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Первый вопрос');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Да');
+  await host.getByLabel('Вариант 2', { exact: true }).fill('Нет');
+  await saveQuestion(host);
   await host.getByText('Шаблоны вопросов', { exact: true }).click();
   await host.getByRole('button', { name: /Рефлексия/ }).click();
   await saveQuestion(host);
@@ -926,7 +930,7 @@ test('reflection template shows others cards after answering and allows only oth
   );
   await expect(second.getByLabel('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
   await expect(ideas.locator('article').first()).toContainText('Идея второго участника');
-  await expect(other.getByRole('button').locator('svg')).toBeVisible();
+  await expect(other.getByRole('button').locator('img')).toBeVisible();
   await first.reload();
   await first.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await expect(first.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toBeVisible();
@@ -940,5 +944,18 @@ test('reflection template shows others cards after answering and allows only oth
   ).toBeDisabled();
   await expect(first.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await first.screenshot({ path: 'test-results/reflection-participant.png', fullPage: true });
+  await host.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(projector.getByText('Первый вопрос', { exact: true })).toBeVisible();
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  await expect(projector.getByText('Идея второго участника', { exact: true })).toBeVisible();
+  await expect(first.getByText('Идея второго участника', { exact: true })).toBeVisible();
+  await expect(first.getByText('Ответ отправлен.', { exact: true })).toBeVisible();
+  await expect(
+    host
+      .getByRole('region', { name: 'Текущий вопрос и результаты' })
+      .getByText('Ответов: 2.', { exact: true }),
+  ).toBeVisible();
+  await projector.reload();
+  await expect(projector.getByText('Идея второго участника', { exact: true })).toBeVisible();
   await Promise.all([context.close(), firstContext.close(), secondContext.close()]);
 });

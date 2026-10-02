@@ -316,7 +316,7 @@ export function createService(db, onSubmitTiming = () => {}) {
         tx.update(roomRef, { title });
         return { version: meeting.version + 1 };
       }
-      if (action === 'open') {
+      if (action === 'open' || action === 'navigate') {
         owner(meeting, uid);
         const rid = text(input.requestId, 100);
         if (!/^[a-zA-Z0-9-]+$/.test(rid)) fail('Некорректный ID раунда.');
@@ -327,6 +327,28 @@ export function createService(db, onSubmitTiming = () => {}) {
         const previous = previousRef ? await tx.get(previousRef) : null;
         const slide = meeting.slides.find((s) => s.id === input.slideId);
         if (!slide) fail('Сначала сохраните слайд.');
+        if (action === 'navigate') {
+          const saved = await tx.get(mref.collection('rounds').where('slide.id', '==', slide.id));
+          const latest = saved.docs
+            .map((snap) => snap.data())
+            .sort(
+              (a, b) =>
+                (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || b.id.localeCompare(a.id),
+            )[0];
+          if (latest) {
+            if (meeting.roundId === latest.id) return { id: latest.id, restored: true };
+            if (previous?.exists) tx.update(previousRef, { phase: 'closed', likesOpen: false });
+            latest.phase = 'closed';
+            latest.likesOpen = false;
+            tx.update(mref.collection('rounds').doc(latest.id), {
+              phase: 'closed',
+              likesOpen: false,
+            });
+            tx.update(mref, { status: 'live', liveSlideId: slide.id, roundId: latest.id });
+            tx.update(roomRef, { status: 'live', round: publicRound(latest), frozen: null });
+            return { id: latest.id, restored: true };
+          }
+        }
         const problem = launchProblem(slide);
         if (problem) fail(problem);
         const config = launchSettings(slide, slide.launch ?? input.settings);

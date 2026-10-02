@@ -167,6 +167,15 @@ test('HTTP API: real emulator tokens, ownership, accepted response and safe retr
       ).data().likes,
       0,
     );
+    const restored = await call(host, 'navigate', {
+      sessionId: sid,
+      slideId: 'slide',
+      requestId: 'return-to-vote',
+    });
+    assert.equal(restored.status, 200);
+    assert.equal(restored.data.id, rid);
+    assert.equal((await db.collection(`meetings/${sid}/rounds`).get()).size, 2);
+    assert.equal((await db.doc(`rooms/${sid}`).get()).data().round.phase, 'closed');
     assert.equal((await call(host, 'delete', { sessionId: sid })).status, 200);
     assert.equal((await db.doc(`meetings/${sid}`).get()).exists, false);
     sid = undefined;

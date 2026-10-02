@@ -551,3 +551,79 @@ test('open answers automatically allow likes and reject liking own card', async 
     0,
   );
 });
+
+test('slide navigation restores all saved answers and likes without creating new rounds', async () => {
+  const { id: sid, joinCode } = await meeting('preserved-navigation');
+  await call('a', 'join', { code: joinCode });
+  await call('b', 'join', { code: joinCode });
+  const saved = new Map();
+  for (const [slideId, answer] of [
+    ['choice', 1],
+    ['text', 'Сохранённая идея'],
+    ['pulse', 7],
+    ['cloud', 'Команда'],
+  ]) {
+    const { id: rid } = await call('host-a', 'navigate', {
+      sessionId: sid,
+      slideId,
+      requestId: `first-${slideId}`,
+    });
+    const sent = await send('a', sid, rid, answer);
+    if (slideId === 'text')
+      await call('b', 'like', { sessionId: sid, responseId: sent.id, enabled: true });
+    saved.set(slideId, {
+      rid,
+      answer: (await db.doc(`meetings/${sid}/rounds/${rid}/responses/${sent.id}`).get()).data(),
+      responseId: sent.id,
+    });
+  }
+  await assert.rejects(
+    call('host-other', 'navigate', { sessionId: sid, slideId: 'text', requestId: 'forbidden' }),
+  );
+  for (let pass = 0; pass < 2; pass++) {
+    for (const [slideId, original] of saved) {
+      const restored = await call('host-a', 'navigate', {
+        sessionId: sid,
+        slideId,
+        requestId: `back-${pass}-${slideId}`,
+      });
+      assert.equal(restored.id, original.rid);
+      assert.equal(restored.restored, true);
+      const room = (await db.doc(`rooms/${sid}`).get()).data();
+      assert.equal(room.round.id, original.rid);
+      assert.equal(room.round.phase, 'closed');
+      assert.deepEqual(
+        (
+          await db
+            .doc(`meetings/${sid}/rounds/${original.rid}/responses/${original.responseId}`)
+            .get()
+        ).data(),
+        original.answer,
+      );
+      assert.equal(
+        (await db.collection(`meetings/${sid}/rounds/${original.rid}/published`).get()).size,
+        1,
+      );
+    }
+  }
+  assert.equal((await db.collection(`meetings/${sid}/rounds`).get()).size, 4);
+  const repeated = await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'explicit-new-text',
+  });
+  assert.equal(
+    (await db.collection(`meetings/${sid}/rounds/${repeated.id}/responses`).get()).size,
+    0,
+  );
+  assert.equal(
+    (
+      await call('host-a', 'navigate', {
+        sessionId: sid,
+        slideId: 'text',
+        requestId: 'latest-text',
+      })
+    ).id,
+    repeated.id,
+  );
+});

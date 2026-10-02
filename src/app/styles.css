@@ -1804,8 +1804,6 @@ a {
   border-color: #3b82f6;
 }
 
-.idea-like-button svg, .idea-like-count svg { color: #60a5fa; }
-.idea-like-button[aria-pressed="true"] svg { fill: #2563eb; }
 .like-burst {
   position: fixed;
   z-index: 1000;
@@ -1815,7 +1813,6 @@ a {
   color: #60a5fa;
   animation: like-float 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
-.like-burst svg { fill: #2563eb; filter: drop-shadow(0 3px 6px rgba(37, 99, 235, 0.35)); }
 @keyframes like-float {
   0% { transform: translate(-50%, -50%) scale(0.7) rotate(-8deg); opacity: 0; }
   12% { opacity: 1; }
@@ -1827,3 +1824,6 @@ a {
   .like-burst { animation: like-float-static 0.1s forwards; }
   @keyframes like-float-static { from { opacity: 0; } to { opacity: 0; } }
 }
+
+.like-icon { display: block; flex-shrink: 0; object-fit: contain; }
+.like-burst .like-icon { filter: drop-shadow(0 3px 6px rgba(37, 99, 235, 0.35)); }

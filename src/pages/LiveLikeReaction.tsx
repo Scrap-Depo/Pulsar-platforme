@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ThumbsUp } from 'lucide-react';
+import LikeIcon from '../shared/ui/LikeIcon';
 import { PublicResponse } from '../shared/types/live';
 
 export default function LiveLikeReaction({
@@ -51,7 +51,7 @@ export default function LiveLikeReaction({
               setBursts((current) => current.filter((item) => item.id !== burst.id))
             }
           >
-            <ThumbsUp size={48} />
+            <LikeIcon size={48} />
           </span>
         ))}
     </>
