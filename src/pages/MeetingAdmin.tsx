@@ -237,6 +237,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     patch({ slides: [...draft!.slides, slide], currentSlideId: slide.id });
   }
   const repeated = rounds.data.some((r) => r.slide.id === current.id);
+  const liveIndex = round ? draft.slides.findIndex((slide) => slide.id === round.slide.id) : -1;
+  const nextSlide = liveIndex >= 0 ? draft.slides[liveIndex + 1] : undefined;
+  function prepareNext() {
+    if (nextSlide) setDraft((previous) => previous ? { ...previous, currentSlideId: nextSlide.id } : previous);
+    setTab('prepare');
+  }
   const isText = ['open-answers', 'word-cloud'].includes(current.type);
   const launchSettings = {
     ...config,
@@ -287,6 +293,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           Открыть экран проектора
         </a>
       </div>
+      {dirty && view !== 'prepare' && !finished && (
+        <div className="notice draft-reminder" role="status">
+          <p>В подготовке есть несохранённые изменения. Текущий вопрос у участников не изменён.</p>
+          <button type="button" onClick={() => setTab('prepare')}>Вернуться к изменениям</button>
+        </div>
+      )}
       {!online && (
         <p className="notice" role="status">
           Нет соединения. Управление встречей недоступно.
@@ -440,9 +452,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   {round.phase === 'closed' && (
                     <button
                       className={round.visible ? 'primary-action' : ''}
-                      onClick={() => setTab('prepare')}
+                      onClick={prepareNext}
                     >
-                      Следующий вопрос
+                      {nextSlide ? 'Следующий вопрос' : 'Выбрать вопрос'}
                     </button>
                   )}
                   {round.phase === 'closed' &&
@@ -596,6 +608,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           <section className="card section-stack">
             <h2>Подготовка вопроса</h2>
             <p>Подготовьте вопрос, проверьте предпросмотр и сохраните перед запуском.</p>
+            {round && (
+              <p className="preparation-context">
+                Текущий вопрос у участников: «{round.slide.title}».{' '}
+                {round.phase === 'open' ? 'Сбор ответов продолжается.' : 'Сбор ответов завершён.'}
+              </p>
+            )}
             <div className="editor-grid">
               <div className="editor-form">
                 <fieldset disabled={busy}>

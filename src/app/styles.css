@@ -1699,6 +1699,9 @@ a {
 .live-shell .meeting-title { margin: 0; flex: 1; max-width: 520px; font-size: 13px; }
 .live-shell .meeting-title input { padding: 8px 12px; font-size: 18px; }
 .host-notice { margin: 0; }
+.draft-reminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.draft-reminder p { margin: 0; flex: 1; min-width: 180px; }
+.preparation-context { margin: 0; padding: 10px 12px; border-left: 3px solid var(--accent); color: var(--text-muted); }
 .host-tabs { margin: 0; }
 .host-workspace { grid-template-columns: minmax(220px, .55fr) minmax(0, 2fr); gap: 16px; align-items: start; }
 .live-shell .question-preview { padding: 12px; border: 0; }

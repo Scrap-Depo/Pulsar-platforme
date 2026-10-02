@@ -224,6 +224,11 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(p.locator('body')).toHaveJSProperty('scrollWidth', 360);
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Новая формулировка');
+  await host.getByRole('tab', { name: 'Эфир' }).click();
+  await expect(host.getByText('В подготовке есть несохранённые изменения.', { exact: false })).toBeVisible();
+  await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
+  await host.getByRole('button', { name: 'Вернуться к изменениям', exact: true }).click();
+  await expect(host.getByRole('textbox', { name: 'Вопрос', exact: true })).toHaveValue('Новая формулировка');
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await host.getByRole('button', { name: '4. Введите слово или короткую ассоциацию' }).click();
@@ -328,6 +333,10 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await close.click();
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
   await host.getByRole('button', { name: 'Следующий вопрос', exact: true }).click();
+  await expect(host.getByRole('textbox', { name: 'Вопрос', exact: true })).toHaveValue('Главный инсайт квартала?');
+  await expect(host.getByRole('button', { name: '2. Главный инсайт квартала?', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(host.getByRole('button', { name: 'Запустить вопрос', exact: true })).toBeVisible();
+  await host.getByRole('button', { name: '1. Что важно проверить перед запуском встречи?', exact: true }).click();
   let confirmations = 0;
   host.once('dialog', (dialog) => {
     confirmations++;
