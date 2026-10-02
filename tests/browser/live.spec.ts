@@ -704,7 +704,7 @@ test('history charts use reviewed text and closed question exports work during a
   if (await host.getByRole('button', { name: 'Открыть лайки', exact: true }).count())
     await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
   await expect(
-    first.getByRole('heading', { name: 'Выберите полезные идеи', exact: true }),
+    first.getByRole('heading', { name: 'Ответы участников', exact: true }),
   ).toBeVisible();
   await expect(first.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
   await expect(first.getByRole('button', { name: /^Нравится/ })).toHaveCount(0);
@@ -715,8 +715,8 @@ test('history charts use reviewed text and closed question exports work during a
   await expect(first.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();
   await expect(
-    first.getByRole('heading', { name: 'Выберите полезные идеи', exact: true }),
-  ).toHaveCount(0);
+    first.getByRole('heading', { name: 'Ответы участников', exact: true }),
+  ).toBeVisible();
   await host.getByRole('tab', { name: 'История' }).click();
   const chart = host.getByRole('region', { name: 'Итоги выбранного вопроса', exact: true });
   await expect(chart.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
@@ -866,4 +866,61 @@ test('text answers show immediately with moderation off by default', async ({ br
     host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }),
   ).toBeVisible();
   await Promise.all([context.close(), participantContext.close()]);
+});
+
+test('reflection template shows others cards after answering and allows only others likes', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`reflection-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-reflection-password');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await host.getByText('Шаблоны вопросов', { exact: true }).click();
+  await host.getByRole('button', { name: /Рефлексия/ }).click();
+  await saveQuestion(host);
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  const link = (await host
+    .getByRole('link', { name: 'Вход участника', exact: true })
+    .getAttribute('href'))!;
+  const firstContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const secondContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const first = await firstContext.newPage();
+  const second = await secondContext.newPage();
+  for (const [page, answer] of [
+    [first, 'Идея первого участника'],
+    [second, 'Идея второго участника'],
+  ] as const) {
+    await page.goto(link);
+    await page.getByRole('button', { name: 'Подключиться', exact: true }).click();
+    await page.getByLabel('Ваш ответ', { exact: true }).fill(answer);
+    await page.getByRole('button', { name: 'Отправить', exact: true }).click();
+    await expect(page.getByText('Ответ отправлен.', { exact: true })).toBeVisible();
+  }
+  const ideas = first.getByRole('region', { name: 'Ответы участников' });
+  await expect(ideas).toBeVisible();
+  const mine = ideas.locator('article').filter({ hasText: 'Идея первого участника' });
+  const other = ideas.locator('article').filter({ hasText: 'Идея второго участника' });
+  await expect(mine.getByRole('button')).toHaveCount(0);
+  await other.getByRole('button', { name: 'Нравится (0)', exact: true }).click();
+  await expect(other.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(second.getByText('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
+  await first.reload();
+  await first.getByRole('button', { name: 'Подключиться', exact: true }).click();
+  await expect(first.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toBeVisible();
+  await first.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
+  await expect(second.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  await openTools(host);
+  await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();
+  await expect(other).toBeVisible();
+  await expect(other.getByRole('button', { name: 'Нравится (0)', exact: true })).toBeDisabled();
+  await expect(first.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await first.screenshot({ path: 'test-results/reflection-participant.png', fullPage: true });
+  await Promise.all([context.close(), firstContext.close(), secondContext.close()]);
 });

@@ -88,7 +88,7 @@ export const slideTemplates: SlideTemplate[] = [
   {
     id: 'template-retro-insight',
     label: 'Рефлексия',
-    description: 'Открытая рефлексия с возможностью лайков',
+    description: 'После своего ответа участники видят карточки других и могут ставить лайки',
     type: 'open-answers',
   },
 ];
@@ -104,7 +104,12 @@ export function createSlide(type: SlideType, _order: number): SessionSlide {
       type,
       options: [
         { id: Date.now(), text: '', votes: 0, color: 'linear-gradient(135deg, #479ddb, #3363c1)' },
-        { id: Date.now() + 1, text: '', votes: 0, color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)' },
+        {
+          id: Date.now() + 1,
+          text: '',
+          votes: 0,
+          color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)',
+        },
       ],
       visualization: 'bar',
       resultDisplay: 'both',
@@ -163,9 +168,24 @@ export function createTemplateSlide(templateId: string, order: number): SessionS
         visualization: 'donut',
         resultDisplay: 'both',
         options: [
-          { id: timestamp, text: 'Вариант A', votes: 0, color: 'linear-gradient(135deg, #479ddb, #3363c1)' },
-          { id: timestamp + 1, text: 'Вариант B', votes: 0, color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)' },
-          { id: timestamp + 2, text: 'Вариант C', votes: 0, color: 'linear-gradient(135deg, #c03654, #7f1d1d)' },
+          {
+            id: timestamp,
+            text: 'Вариант A',
+            votes: 0,
+            color: 'linear-gradient(135deg, #479ddb, #3363c1)',
+          },
+          {
+            id: timestamp + 1,
+            text: 'Вариант B',
+            votes: 0,
+            color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)',
+          },
+          {
+            id: timestamp + 2,
+            text: 'Вариант C',
+            votes: 0,
+            color: 'linear-gradient(135deg, #c03654, #7f1d1d)',
+          },
         ],
       };
     case 'template-energy-pulse':
@@ -186,6 +206,7 @@ export function createTemplateSlide(templateId: string, order: number): SessionS
         type: 'open-answers',
         allowLikes: true,
         visualization: 'wall',
+        launch: { cardLimit: 1, moderation: false, immediate: true, showOnPhones: false },
       };
     default:
       return createSlide('multiple-choice', order);
@@ -211,7 +232,11 @@ export function moveSlide(slides: SessionSlide[], slideId: string, direction: 'u
   return nextSlides;
 }
 
-export function reorderSlides(slides: SessionSlide[], draggedSlideId: string, targetSlideId: string) {
+export function reorderSlides(
+  slides: SessionSlide[],
+  draggedSlideId: string,
+  targetSlideId: string,
+) {
   const draggedIndex = slides.findIndex((slide) => slide.id === draggedSlideId);
   const targetIndex = slides.findIndex((slide) => slide.id === targetSlideId);
 

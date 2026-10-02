@@ -1770,3 +1770,15 @@ a {
 .question-strip span { overflow-wrap: anywhere; }
 .presenter-tools > summary { cursor: pointer; padding: 10px 0; font-weight: 600; }
 .presenter-tools > *:not(summary) { margin-top: 14px; }
+
+.participant-idea {
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+
+.participant-idea p {
+  margin: 0 0 12px;
+}

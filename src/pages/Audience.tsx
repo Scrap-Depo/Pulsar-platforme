@@ -158,7 +158,9 @@ function Connected({
   const path = round ? `meetings/${sessionId}/rounds/${round.id}` : null;
   const own = useLiveDoc<OwnAnswers>(!viewer && path ? `${path}/private/${uid}` : null);
   const published = useLiveList<PublicResponse>(
-    round?.visible && path && (viewer || round.settings.showOnPhones === true || round.likesOpen)
+    round?.visible &&
+      path &&
+      (viewer || round.settings.showOnPhones === true || round.slide.type === 'open-answers')
       ? `${path}/published`
       : null,
   );
@@ -263,16 +265,17 @@ function Connected({
           )}
         </section>
       )}
-      {round.visible && round.settings.showOnPhones === true && !round.likesOpen && (
+      {round.visible && round.settings.showOnPhones === true && !round.likesOpen && !sentText && (
         <>
           <LiveResults round={round} results={published.data} />
           {published.error && <p role="alert">{published.error}</p>}
         </>
       )}
       {sentText && !showForm && !round.likesOpen && <p>Выбор полезных идей пока закрыт ведущим.</p>}
-      {round.likesOpen && sentText && !showForm && (
-        <section className="card">
-          <h2>Выберите полезные идеи</h2>
+      {round.visible && sentText && !showForm && (
+        <section className="card participant-ideas" aria-label="Ответы участников">
+          <h2>Ответы участников</h2>
+          {round.likesOpen && <p>Отметьте полезные идеи других участников.</p>}
           {published.data.every((response) =>
             ownAnswers.some((answer) => answer.id === response.id),
           ) && <p>Другие ответы появятся здесь. Если включена модерация — после одобрения.</p>}
@@ -281,12 +284,16 @@ function Connected({
               (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
             );
             return (
-              <article key={r.id}>
+              <article className="participant-idea" key={r.id}>
                 <p>{r.value}</p>
                 {ownAnswers.some((answer) => answer.id === r.id) ? (
                   <p>Ваш ответ · Лайков: {r.likes}</p>
                 ) : (
-                  <button disabled={liking !== null} onClick={() => void toggle(r, !enabled)}>
+                  <button
+                    disabled={!round.likesOpen || liking !== null}
+                    aria-pressed={enabled}
+                    onClick={() => void toggle(r, !enabled)}
+                  >
                     {enabled ? 'Снять лайк' : 'Нравится'} ({r.likes})
                   </button>
                 )}
