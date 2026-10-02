@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
+import { ThumbsUp } from 'lucide-react';
 import { Room, PublicResponse, OwnAnswers } from '../shared/types/live';
 import { useLiveDoc, useLiveList, useOnline } from '../shared/hooks/useLiveData';
 import { command, message } from '../shared/lib/liveApi';
@@ -279,27 +280,48 @@ function Connected({
           {published.data.every((response) =>
             ownAnswers.some((answer) => answer.id === response.id),
           ) && <p>Другие ответы появятся здесь. Если включена модерация — после одобрения.</p>}
-          {published.data.map((r) => {
-            const enabled = likes.data.some(
-              (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
-            );
-            return (
-              <article className="participant-idea" key={r.id}>
-                <p>{r.value}</p>
-                {ownAnswers.some((answer) => answer.id === r.id) ? (
-                  <p>Ваш ответ · Лайков: {r.likes}</p>
-                ) : (
-                  <button
-                    disabled={!round.likesOpen || liking !== null}
-                    aria-pressed={enabled}
-                    onClick={() => void toggle(r, !enabled)}
-                  >
-                    {enabled ? 'Снять лайк' : 'Нравится'} ({r.likes})
-                  </button>
-                )}
-              </article>
-            );
-          })}
+          {[...published.data]
+            .sort((a, b) => b.likes - a.likes || a.id.localeCompare(b.id))
+            .map((r) => {
+              const enabled = likes.data.some(
+                (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
+              );
+              return (
+                <article className="participant-idea" key={r.id}>
+                  <p>{r.value}</p>
+                  {ownAnswers.some((answer) => answer.id === r.id) ? (
+                    <div className="idea-footer">
+                      <span>Ваш ответ</span>
+                      <span
+                        className="idea-like-count"
+                        aria-label={`Ваш ответ · Лайков: ${r.likes}`}
+                      >
+                        <ThumbsUp size={20} aria-hidden="true" />
+                        <span>{r.likes}</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      className="idea-like-button"
+                      disabled={!round.likesOpen || liking !== null}
+                      aria-label={`${enabled ? 'Снять лайк' : 'Поставить лайк'} (${r.likes})`}
+                      title={
+                        round.likesOpen
+                          ? enabled
+                            ? 'Снять лайк'
+                            : 'Поставить лайк'
+                          : 'Лайки закрыты ведущим'
+                      }
+                      aria-pressed={enabled}
+                      onClick={() => void toggle(r, !enabled)}
+                    >
+                      <ThumbsUp size={20} aria-hidden="true" />
+                      <span>{r.likes}</span>
+                    </button>
+                  )}
+                </article>
+              );
+            })}
           <p role="alert">{error || likes.error || published.error}</p>
         </section>
       )}

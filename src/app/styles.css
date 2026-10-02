@@ -1782,3 +1782,24 @@ a {
 .participant-idea p {
   margin: 0 0 12px;
 }
+
+.idea-footer, .idea-like-button, .idea-like-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.idea-footer {
+  justify-content: space-between;
+}
+
+.idea-like-button {
+  min-width: 64px;
+  min-height: 44px;
+}
+
+.idea-like-button[aria-pressed="true"] {
+  color: #67e8f9;
+  background: #164e63;
+  border-color: #67e8f9;
+}

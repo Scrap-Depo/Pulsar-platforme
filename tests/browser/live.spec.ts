@@ -707,12 +707,12 @@ test('history charts use reviewed text and closed question exports work during a
     first.getByRole('heading', { name: 'Ответы участников', exact: true }),
   ).toBeVisible();
   await expect(first.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
-  await expect(first.getByRole('button', { name: /^Нравится/ })).toHaveCount(0);
-  await expect(first.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
-  await second.getByRole('button', { name: 'Нравится (0)', exact: true }).click();
-  await expect(first.getByText('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
+  await expect(first.getByRole('button', { name: /^Поставить лайк/ })).toHaveCount(0);
+  await expect(first.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  await second.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
+  await expect(first.getByLabel('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
   await second.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
-  await expect(first.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  await expect(first.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();
   await expect(
     first.getByRole('heading', { name: 'Ответы участников', exact: true }),
@@ -905,21 +905,25 @@ test('reflection template shows others cards after answering and allows only oth
   const mine = ideas.locator('article').filter({ hasText: 'Идея первого участника' });
   const other = ideas.locator('article').filter({ hasText: 'Идея второго участника' });
   await expect(mine.getByRole('button')).toHaveCount(0);
-  await other.getByRole('button', { name: 'Нравится (0)', exact: true }).click();
+  await other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
   await expect(other.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await expect(second.getByText('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
+  await expect(second.getByLabel('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
+  await expect(ideas.locator('article').first()).toContainText('Идея второго участника');
+  await expect(other.getByRole('button').locator('svg')).toBeVisible();
   await first.reload();
   await first.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await expect(first.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toBeVisible();
   await first.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
-  await expect(second.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await openTools(host);
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();
   await expect(other).toBeVisible();
-  await expect(other.getByRole('button', { name: 'Нравится (0)', exact: true })).toBeDisabled();
+  await expect(
+    other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }),
+  ).toBeDisabled();
   await expect(first.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await first.screenshot({ path: 'test-results/reflection-participant.png', fullPage: true });
   await Promise.all([context.close(), firstContext.close(), secondContext.close()]);
