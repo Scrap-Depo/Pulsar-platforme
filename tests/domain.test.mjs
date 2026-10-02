@@ -44,7 +44,7 @@ test('published response omits identity, original and history', () => {
 test('invalid option identifiers rejected and safe defaults applied', () => {
   assert.deepEqual(settings(), {
     cardLimit: 1,
-    moderation: true,
+    moderation: false,
     immediate: false,
     showOnPhones: false,
   });
@@ -113,7 +113,7 @@ test('slide allowlist strips arbitrary fields and launch settings are safe and t
   assert.deepEqual(settings('malformed'), settings());
   assert.deepEqual(launchSettings({ type: 'open-answers' }), {
     cardLimit: 1,
-    moderation: true,
+    moderation: false,
     immediate: true,
     showOnPhones: false,
   });
@@ -132,11 +132,8 @@ test('slide allowlist strips arbitrary fields and launch settings are safe and t
   ]) {
     const normalized = validSlide({ id: 's', title: '', type: 'open-answers', launch }).launch;
     assert.equal(normalized.cardLimit, 1);
-    assert.equal(normalized.moderation, true);
-    assert.equal(
-      normalized.immediate,
-      launch && typeof launch === 'object' && !Array.isArray(launch) ? false : true,
-    );
+    assert.equal(normalized.moderation, false);
+    assert.equal(normalized.immediate, true);
   }
 });
 
@@ -144,4 +141,16 @@ test('readable new codes omit ambiguous characters and phone results default off
   for (let i = 0; i < 100; i++) assert.match(joinCode(), /^[2345679ACDEFGHJKLMNPQRSTUVWXYZ]{6}$/);
   assert.equal(settings({ showOnPhones: 'true' }).showOnPhones, false);
   assert.equal(settings({ showOnPhones: true }).showOnPhones, true);
+});
+
+test('unmoderated text launches immediately even when old timing says after', () => {
+  assert.deepEqual(
+    launchSettings({ type: 'word-cloud' }, { moderation: false, immediate: false }),
+    {
+      cardLimit: 1,
+      moderation: false,
+      immediate: true,
+      showOnPhones: false,
+    },
+  );
 });

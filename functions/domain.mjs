@@ -21,17 +21,19 @@ export function settings(input = {}) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   return {
     cardLimit: source.cardLimit === 3 ? 3 : 1,
-    moderation: source.moderation !== false,
+    moderation: source.moderation === true,
     immediate: source.immediate === true,
     showOnPhones: source.showOnPhones === true,
   };
 }
 export function launchSettings(slide, input = slide.launch) {
-  const defaults = { cardLimit: 1, moderation: true, immediate: true };
+  const defaults = { cardLimit: 1, moderation: false, immediate: true };
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const config = settings({ ...defaults, ...source });
+  const textQuestion = ['open-answers', 'word-cloud'].includes(slide.type);
   return {
     ...config,
+    immediate: textQuestion && !config.moderation ? true : config.immediate,
     cardLimit: slide.type === 'open-answers' ? config.cardLimit : 1,
     moderation: ['open-answers', 'word-cloud'].includes(slide.type) && config.moderation,
   };

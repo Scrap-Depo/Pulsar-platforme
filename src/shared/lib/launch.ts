@@ -2,10 +2,12 @@ import { LaunchSettings, SessionSlide } from '../types/common';
 
 export function questionLaunchSettings(slide: SessionSlide): LaunchSettings {
   const input = slide.launch;
+  const text = ['open-answers', 'word-cloud'].includes(slide.type);
+  const moderation = text && input?.moderation === true;
   return {
     cardLimit: slide.type === 'open-answers' && input?.cardLimit === 3 ? 3 : 1,
-    moderation: ['open-answers', 'word-cloud'].includes(slide.type) && input?.moderation !== false,
-    immediate: input?.immediate !== false,
+    moderation,
+    immediate: text && !moderation ? true : input?.immediate !== false,
     showOnPhones: input?.showOnPhones === true,
   };
 }

@@ -404,7 +404,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         {(
           [
             ['prepare', 'Подготовка'],
-            ['live', 'Эфир'],
+            ['live', 'Показ'],
             ['results', 'История'],
           ] as [HostTab, string][]
         )
@@ -462,6 +462,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       : 'Результаты скрыты от участников'}
                   </span>
                 </div>
+                <p>Ответов: {responses.data.length}.</p>
                 {joined === 0 ? (
                   <p>Участники ещё не подключились.</p>
                 ) : (
@@ -523,68 +524,71 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               </section>
               <aside className="card live-controls" aria-label="Пульт ведущего">
                 <h2>Управление вопросом</h2>
-                <fieldset disabled={busy || !online} className="section-stack">
-                  {!round.visible && (
-                    <button
-                      className="primary-action"
-                      onClick={() => void run('reveal', { roundId: round.id })}
-                    >
-                      Показать результаты
-                    </button>
-                  )}
-                  {round.visible && round.slide.type === 'open-answers' && (
-                    <button
-                      onClick={() =>
-                        void run('likes', { enabled: !round.likesOpen, roundId: round.id })
-                      }
-                    >
-                      {round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
-                    </button>
-                  )}
-                </fieldset>
                 {round.phase === 'open' && (
-                  <Timer
-                    round={round}
+                  <button
                     disabled={busy || !online}
-                    onSet={(seconds) => void run('timer', { seconds })}
-                  />
+                    onClick={() => void run('close', { roundId: round.id })}
+                  >
+                    Завершить сбор ответов
+                  </button>
                 )}
-                <button
-                  disabled={busy || !online}
-                  onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
-                >
-                  {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
-                </button>
-                <small>
-                  Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.
-                </small>
-                <details className="live-extra">
-                  <summary>Показ и оформление результатов</summary>
-                  {round.phase === 'open' && (
-                    <button
-                      disabled={busy || !online}
-                      onClick={() => void run('close', { roundId: round.id })}
-                    >
-                      Завершить сбор ответов
-                    </button>
-                  )}
-                  <fieldset disabled={busy || !online || dirty}>
-                    <ResultAppearance
-                      slide={m.slides.find((s) => s.id === round.slide.id) ?? round.slide}
-                      onChange={(slide) => void applyAppearance(slide)}
-                    />
+                <details className="presenter-tools">
+                  <summary>Дополнительное управление</summary>
+                  <fieldset disabled={busy || !online} className="section-stack">
+                    {!round.visible && (
+                      <button
+                        className="primary-action"
+                        onClick={() => void run('reveal', { roundId: round.id })}
+                      >
+                        Показать результаты
+                      </button>
+                    )}
+                    {round.visible && round.slide.type === 'open-answers' && (
+                      <button
+                        onClick={() =>
+                          void run('likes', { enabled: !round.likesOpen, roundId: round.id })
+                        }
+                      >
+                        {round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
+                      </button>
+                    )}
                   </fieldset>
-                  {dirty && <p>Сначала сохраните или отмените изменения в подготовке.</p>}
-                  <p>Оформление применяется сразу. Формулировка и ответы сохраняются.</p>
+                  {round.phase === 'open' && (
+                    <Timer
+                      round={round}
+                      disabled={busy || !online}
+                      onSet={(seconds) => void run('timer', { seconds })}
+                    />
+                  )}
+                  <button
+                    disabled={busy || !online}
+                    onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
+                  >
+                    {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
+                  </button>
+                  <small>
+                    Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.
+                  </small>
+                  <details className="live-extra">
+                    <summary>Показ и оформление результатов</summary>
+                    <fieldset disabled={busy || !online || dirty}>
+                      <ResultAppearance
+                        slide={m.slides.find((s) => s.id === round.slide.id) ?? round.slide}
+                        onChange={(slide) => void applyAppearance(slide)}
+                      />
+                    </fieldset>
+                    {dirty && <p>Сначала сохраните или отмените изменения в подготовке.</p>}
+                    <p>Оформление применяется сразу. Формулировка и ответы сохраняются.</p>
+                  </details>
+                  <ParticipantConnection
+                    key={round.id}
+                    url={joinLink}
+                    code={m.joinCode}
+                    collapsed
+                    onNotice={setNotice}
+                    onError={setError}
+                  />
                 </details>
-                <ParticipantConnection
-                  key={round.id}
-                  url={joinLink}
-                  code={m.joinCode}
-                  collapsed={joined > 0}
-                  onNotice={setNotice}
-                  onError={setError}
-                />
               </aside>
             </div>
           )}
@@ -722,7 +726,8 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             {currentIsOpen &&
               (dirty || JSON.stringify(current) !== JSON.stringify(round.slide)) && (
                 <p className="preparation-context">
-                  В эфире сохранённая при запуске версия; изменения редактора ещё не опубликованы.
+                  Показывается сохранённая при запуске версия; изменения редактора ещё не
+                  опубликованы.
                 </p>
               )}
             <div className="editor-grid">
@@ -761,6 +766,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   <label>
                     Когда показывать результаты
                     <select
+                      disabled={isText && !config.moderation}
                       value={config.immediate ? 'immediate' : 'after'}
                       onChange={(e) =>
                         setConfig({ ...config, immediate: e.target.value === 'immediate' })
@@ -778,6 +784,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     />
                     Показывать результаты на телефонах участников
                   </label>
+                  {isText && !config.moderation && (
+                    <small>Без модерации ответы показываются сразу.</small>
+                  )}
                   <small>Эти настройки применятся при запуске выбранного вопроса.</small>
                 </fieldset>
               </div>
@@ -824,9 +833,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                         setTab('live');
                       }}
                     >
-                      Перейти в эфир
+                      Перейти к показу
                     </button>
-                    <p>Этот вопрос сейчас в эфире.</p>
+                    <p>Этот вопрос сейчас показывается.</p>
                     <details>
                       <summary>Начать новый сбор на этот вопрос</summary>
                       <button disabled={busy || !online || dirty || !!problem} onClick={open}>
@@ -876,7 +885,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           </section>
         </div>
       )}
-      {view === 'live' && round && !finished && (
+      {view === 'live' && round && !finished && round.settings.moderation && (
         <Moderation
           responses={responses.data}
           busy={busy || !online}
@@ -1454,7 +1463,7 @@ function LiveQuestionRail({
     return () => window.removeEventListener('keydown', navigate);
   }, [disabled, previous, next, onLaunch]);
   return (
-    <section className="card live-question-rail" aria-label="Вопросы эфира">
+    <section className="card live-question-rail" aria-label="Вопросы показа">
       <div className="button-row">
         <button
           className="primary-action"

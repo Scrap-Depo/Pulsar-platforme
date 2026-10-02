@@ -1768,3 +1768,5 @@ a {
 .live-shell .question-strip button { flex: 0 0 220px; display: flex; align-items: center; gap: 8px; text-align: left; }
 .question-strip svg { flex-shrink: 0; }
 .question-strip span { overflow-wrap: anywhere; }
+.presenter-tools > summary { cursor: pointer; padding: 10px 0; font-weight: 600; }
+.presenter-tools > *:not(summary) { margin-top: 14px; }

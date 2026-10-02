@@ -84,7 +84,7 @@ test('isolation, auth, private collection, idempotent submission and closed gate
     sessionId: sid,
     slideId: 'choice',
     requestId: 'r1',
-    settings: { immediate: false },
+    settings: { moderation: true, immediate: false },
   });
   await Promise.all([send('a', sid, 'r1', 1), send('a', sid, 'r1', 1)]);
   await assert.rejects(send('a', sid, 'r1', 2)); // A reused request ID cannot acknowledge different content.
@@ -122,7 +122,7 @@ test('moderation, revision conflicts, freeze, likes and historical rounds', asyn
     sessionId: sid,
     slideId: 'text',
     requestId: 'text1',
-    settings: { immediate: true, cardLimit: 3 },
+    settings: { moderation: true, immediate: true, cardLimit: 3 },
   });
   const sent = await send('a', sid, 'text1', 'Оригинал');
   await assert.rejects(send('a', sid, 'text1', 'Четвёртая', { slot: 3 }));
@@ -272,7 +272,7 @@ test('private receipt isolates participants and atomically preserves cards, edit
     sessionId: sid,
     slideId: 'text',
     requestId: 'receipt-round',
-    settings: { cardLimit: 3 },
+    settings: { moderation: true, cardLimit: 3 },
   });
   const path = `meetings/${sid}/rounds/receipt-round/private/a`;
   const user = env.authenticatedContext('a').firestore();
@@ -401,7 +401,7 @@ test('draft launch gates, persisted settings, immutable old rounds and selected 
     sessionId: sid,
     slideId: 'choice',
     requestId: 'saved',
-    settings: { cardLimit: 3, moderation: true, immediate: true },
+    settings: { moderation: true, cardLimit: 3, moderation: true, immediate: true },
   });
   const roundRef = db.doc(`meetings/${sid}/rounds/saved`);
   const before = (await roundRef.get()).data();
@@ -473,7 +473,7 @@ test('reveal and likes during collection, revisions reset likes, finish closes c
     sessionId: sid,
     slideId: 'text',
     requestId: 'live-controls',
-    settings: { immediate: false },
+    settings: { moderation: true, immediate: false },
   });
   await send('a', sid, 'live-controls', 'Первый');
   const ref = db.doc(`meetings/${sid}/rounds/live-controls`);
