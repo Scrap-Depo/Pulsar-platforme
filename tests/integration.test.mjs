@@ -464,3 +464,47 @@ test('preview exposes only meeting title, does not join, and old 10-character co
   await call('host-a', 'finish', { sessionId: sid });
   await assert.rejects(call('preview-person', 'previewMeeting', { code: legacyCode }), /завершена/);
 });
+
+test('reveal and likes during collection, revisions reset likes, finish closes current collection', async () => {
+  const { id: sid, joinCode } = await meeting('test-live-controls');
+  await call('a', 'join', { code: joinCode });
+  await call('b', 'join', { code: joinCode });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'live-controls',
+    settings: { immediate: false },
+  });
+  await send('a', sid, 'live-controls', 'Первый');
+  const ref = db.doc(`meetings/${sid}/rounds/live-controls`);
+  const response = responseId('live-controls', 'a', 0);
+  await call('host-a', 'moderate', {
+    sessionId: sid,
+    ids: [response],
+    revisions: { [response]: 1 },
+    status: 'approved',
+  });
+  await call('host-a', 'reveal', { sessionId: sid });
+  await call('host-a', 'likes', { sessionId: sid, enabled: true });
+  assert.equal((await ref.get()).data().phase, 'open');
+  await call('b', 'like', { sessionId: sid, responseId: response, enabled: true });
+  assert.equal((await ref.collection('responses').doc(response).get()).data().likes, 1);
+  await call('a', 'submit', {
+    sessionId: sid,
+    roundId: 'live-controls',
+    slot: 0,
+    value: 'Правка',
+    revision: 1,
+    requestId: 'changed-live',
+  });
+  assert.equal((await ref.collection('responses').doc(response).get()).data().likes, 0);
+  await assert.rejects(
+    call('b', 'like', { sessionId: sid, responseId: response, enabled: true }),
+    /скрыта/,
+  );
+  await call('host-a', 'finish', { sessionId: sid });
+  const closed = (await ref.get()).data();
+  assert.equal(closed.phase, 'closed');
+  assert.equal(closed.likesOpen, false);
+  await assert.rejects(send('b', sid, 'live-controls', 'Поздно'));
+});

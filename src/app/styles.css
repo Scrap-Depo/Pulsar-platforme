@@ -1763,3 +1763,8 @@ a {
 .host-workspace > section.section-stack { gap: 16px; }
 .host-workspace > section.section-stack > h2, .host-workspace > section.section-stack > p { margin: 0; }
 .question-preview .preview-caption { margin: 0; font-size: 14px; color: var(--text-muted); }
+.live-question-rail { display: grid; gap: 12px; }
+.question-strip { display: flex; gap: 8px; overflow-x: auto; min-width: 0; padding: 4px; }
+.live-shell .question-strip button { flex: 0 0 220px; display: flex; align-items: center; gap: 8px; text-align: left; }
+.question-strip svg { flex-shrink: 0; }
+.question-strip span { overflow-wrap: anywhere; }

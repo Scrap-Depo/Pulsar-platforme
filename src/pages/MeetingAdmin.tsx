@@ -144,6 +144,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const busyRef = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [navigationError, setNavigationError] = useState('');
+  const navigationRef = useRef(false);
+  const navigationRequest = useRef<{ slideId: string; requestId: string } | null>(null);
   const [deleteText, setDeleteText] = useState('');
   const [historyId, setHistoryId] = useState('');
   const [openRequest, setOpenRequest] = useState<string | null>(null);
@@ -245,13 +248,54 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const currentIsOpen = round?.slide.id === current.id && round.phase === 'open';
   const projectorRound = room.data?.frozen?.round ?? round;
   const sameProjectorTitle = projectorRound?.slide.title === round?.slide.title;
-  const liveIndex = round ? draft.slides.findIndex((slide) => slide.id === round.slide.id) : -1;
-  const nextSlide = liveIndex >= 0 ? draft.slides[liveIndex + 1] : undefined;
-  function prepareNext() {
-    setNotice('');
-    if (nextSlide)
-      setDraft((previous) => (previous ? { ...previous, currentSlideId: nextSlide.id } : previous));
-    setTab('prepare');
+  async function launchFromLive(slide: SessionSlide) {
+    if (busyRef.current || navigationRef.current || !online || finished) return;
+    setNavigationError('');
+    if (round?.slide.id === slide.id && round.phase === 'open') return;
+    const problem = launchProblem(slide);
+    if (problem) {
+      setNavigationError(`«${slide.title || 'Без названия'}»: ${problem}`);
+      return;
+    }
+    if (
+      rounds.data.some((r) => r.slide.id === slide.id) &&
+      navigationRequest.current?.slideId !== slide.id &&
+      !window.confirm(
+        'Задать вопрос повторно? Начнётся новый сбор. Предыдущие ответы останутся в истории.',
+      )
+    )
+      return;
+    navigationRef.current = true;
+    try {
+      if (dirty) {
+        const saved = await run('save', {
+          slides: draft!.slides,
+          title: draft!.title,
+          currentSlideId: slide.id,
+          version: draft!.version,
+        });
+        if (!saved) {
+          setNavigationError('Не удалось сохранить правки. Новый вопрос не запущен.');
+          return;
+        }
+      }
+      const request =
+        navigationRequest.current?.slideId === slide.id
+          ? navigationRequest.current
+          : { slideId: slide.id, requestId: crypto.randomUUID() };
+      navigationRequest.current = request;
+      const opened = await run('open', { ...request, settings: questionLaunchSettings(slide) });
+      if (opened) {
+        navigationRequest.current = null;
+        setDraft((previous) => (previous ? { ...previous, currentSlideId: slide.id } : previous));
+        setTab('live');
+      } else
+        setNavigationError(
+          'Запуск не подтверждён. Нажмите на вопрос ещё раз, чтобы повторить попытку.',
+        );
+    } finally {
+      navigationRef.current = false;
+    }
   }
   const isText = ['open-answers', 'word-cloud'].includes(current.type);
   const config = questionLaunchSettings(current);
@@ -382,6 +426,13 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
       {view === 'live' && !finished && (
         <>
+          <LiveQuestionRail
+            slides={draft.slides}
+            liveId={round?.slide.id}
+            disabled={busy || !online}
+            onLaunch={launchFromLive}
+            error={navigationError}
+          />
           {!round ? (
             <section className="card section-stack">
               <h2>Вопрос ещё не запущен</h2>
@@ -472,28 +523,23 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               <aside className="card live-controls" aria-label="Пульт ведущего">
                 <h2>Управление вопросом</h2>
                 <fieldset disabled={busy || !online} className="section-stack">
-                  {round.phase === 'open' && (
-                    <button className="primary-action" onClick={() => void run('close')}>
-                      Завершить сбор ответов
-                    </button>
-                  )}
-                  {round.phase === 'closed' && !round.visible && (
-                    <button className="primary-action" onClick={() => void run('reveal')}>
+                  {!round.visible && (
+                    <button
+                      className="primary-action"
+                      onClick={() => void run('reveal', { roundId: round.id })}
+                    >
                       Показать результаты
                     </button>
                   )}
-                  {round.phase === 'closed' && (
-                    <button className={round.visible ? 'primary-action' : ''} onClick={prepareNext}>
-                      {nextSlide ? 'Следующий вопрос' : 'Выбрать вопрос'}
+                  {round.visible && round.slide.type === 'open-answers' && (
+                    <button
+                      onClick={() =>
+                        void run('likes', { enabled: !round.likesOpen, roundId: round.id })
+                      }
+                    >
+                      {round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
                     </button>
                   )}
-                  {round.phase === 'closed' &&
-                    round.visible &&
-                    round.slide.type === 'open-answers' && (
-                      <button onClick={() => void run('likes', { enabled: !round.likesOpen })}>
-                        {round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
-                      </button>
-                    )}
                 </fieldset>
                 {round.phase === 'open' && (
                   <Timer
@@ -513,6 +559,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                 </small>
                 <details className="live-extra">
                   <summary>Показ и оформление результатов</summary>
+                  {round.phase === 'open' && (
+                    <button
+                      disabled={busy || !online}
+                      onClick={() => void run('close', { roundId: round.id })}
+                    >
+                      Завершить сбор ответов
+                    </button>
+                  )}
                   <fieldset disabled={busy || !online || dirty}>
                     <ResultAppearance
                       slide={m.slides.find((s) => s.id === round.slide.id) ?? round.slide}
@@ -1352,4 +1406,90 @@ function removeDrafts(sessionId: string) {
   } catch {
     /* Remote data is already deleted. */
   }
+}
+
+function LiveQuestionRail({
+  slides,
+  liveId,
+  disabled,
+  onLaunch,
+  error,
+}: {
+  slides: SessionSlide[];
+  liveId?: string;
+  disabled: boolean;
+  onLaunch: (slide: SessionSlide) => Promise<void>;
+  error: string;
+}) {
+  const index = slides.findIndex((slide) => slide.id === liveId);
+  const previous = index > 0 ? slides[index - 1] : undefined;
+  const next = slides[index + 1];
+  useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (
+        disabled ||
+        event.repeat ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.shiftKey
+      )
+        return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target?.closest(
+          'input, textarea, select, button, [contenteditable]:not([contenteditable="false"]), [role="tab"], [role="slider"]',
+        )
+      )
+        return;
+      const slide =
+        event.key === 'ArrowLeft' ? previous : event.key === 'ArrowRight' ? next : undefined;
+      if (slide) {
+        event.preventDefault();
+        void onLaunch(slide);
+      }
+    };
+    window.addEventListener('keydown', navigate);
+    return () => window.removeEventListener('keydown', navigate);
+  }, [disabled, previous, next, onLaunch]);
+  return (
+    <section className="card live-question-rail" aria-label="Вопросы эфира">
+      <div className="button-row">
+        <button
+          className="primary-action"
+          disabled={disabled || !previous}
+          onClick={() => previous && void onLaunch(previous)}
+        >
+          Назад
+        </button>
+        <button
+          className="primary-action"
+          disabled={disabled || !next}
+          onClick={() => next && void onLaunch(next)}
+        >
+          Далее
+        </button>
+      </div>
+      <div className="question-strip">
+        {slides.map((slide, i) => {
+          const Icon = slideIcons[slide.type];
+          return (
+            <button
+              key={slide.id}
+              aria-label={`Запустить вопрос ${i + 1}: ${slide.title || 'Без названия'}`}
+              aria-pressed={slide.id === liveId}
+              disabled={disabled}
+              onClick={() => void onLaunch(slide)}
+            >
+              <Icon size={18} aria-hidden="true" />
+              <span>
+                {i + 1} · {slide.title || 'Без названия'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p role="alert">{error}</p>}
+    </section>
+  );
 }

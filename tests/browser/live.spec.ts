@@ -34,6 +34,15 @@ async function saveQuestion(host: Page) {
   if (await save.isEnabled()) await save.click();
 }
 
+async function openLiveExtra(host: Page) {
+  const extra = host.locator('details.live-extra');
+  if (!((await extra.getAttribute('open')) !== null)) await extra.locator('summary').click();
+}
+async function closeCollection(host: Page) {
+  await openLiveExtra(host);
+  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+}
+
 test('question toolbar preserves edits, order and the saved meeting name', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const host = await context.newPage();
@@ -192,14 +201,14 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await host.getByRole('button', { name: 'Одобрить', exact: true }).first().click();
   await expect(host.getByRole('button', { name: 'Одобрить', exact: true })).toHaveCount(1);
   await host.getByRole('button', { name: 'Одобрить', exact: true }).click();
-  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+  await closeCollection(host);
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
   await expect(p.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   const projContext = await browser.newContext();
   const proj = await projContext.newPage();
   await proj.goto(projectorLink!);
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
-  await host.getByText('Показ и оформление результатов', { exact: true }).click();
+  await openLiveExtra(host);
   await host.getByRole('button', { name: 'Заморозить проектор', exact: true }).click();
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   await host
@@ -225,7 +234,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   await proj.reload();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
-  await host.getByText('Показ и оформление результатов', { exact: true }).click();
+  await openLiveExtra(host);
   await host.getByRole('button', { name: 'Снять заморозку', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
   await p.getByRole('button', { name: '7', exact: true }).click();
@@ -234,7 +243,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await pContext.setOffline(false);
   await p.getByRole('button', { name: 'Отправить', exact: true }).click();
   await expect(p.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
-  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+  await closeCollection(host);
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
   await expect(p.getByText('Среднее по аудитории', { exact: true })).toBeVisible();
   await expect(p.locator('body')).toHaveJSProperty('scrollWidth', 390);
@@ -296,7 +305,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(
     host.getByText('Ответили 1 из 1 присоединившихся. Присоединились: 1/100.'),
   ).toBeVisible();
-  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+  await closeCollection(host);
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
   await expect(p.getByText('1 голосов', { exact: true })).toBeVisible();
   await expect(p.locator('body')).toHaveJSProperty('scrollWidth', 360);
@@ -408,10 +417,8 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await expect(host.getByRole('button', { name: 'Открыть лайки' })).toHaveCount(0);
   const close = host.getByRole('button', { name: 'Завершить сбор ответов' });
   const stage = host.getByRole('region', { name: 'Текущий вопрос и результаты' });
-  const closeBox = (await close.boundingBox())!;
-  const stageBox = (await stage.boundingBox())!;
-  expect(closeBox.y + closeBox.height).toBeLessThan(720);
-  expect(stageBox.x + stageBox.width).toBeLessThanOrEqual(closeBox.x);
+  const nextBox = (await host.getByRole('button', { name: 'Далее', exact: true }).boundingBox())!;
+  expect(nextBox.y + nextBox.height).toBeLessThan(720);
   await host.screenshot({ path: 'test-results/live-laptop.png', fullPage: true });
   await expect(
     host.getByRole('button', { name: 'Заморозить проектор', exact: true }),
@@ -458,23 +465,28 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   ).not.toBeVisible();
   await expect(host.getByText('Время истекло.', { exact: false })).toBeVisible();
   await expect(host.getByRole('button', { name: 'Убрать таймер', exact: true })).toBeVisible();
-  await expect(close).toBeVisible();
-  await host.getByText('Показ и оформление результатов', { exact: true }).click();
+  await expect(host.getByRole('button', { name: 'Далее', exact: true })).toBeVisible();
+  await openLiveExtra(host);
   await host.getByRole('combobox', { name: 'Вид результата', exact: true }).selectOption('donut');
   await expect(host.getByText('Вид результатов обновлён.')).toBeVisible();
   await expect(host.getByRole('combobox', { name: 'Вид результата', exact: true })).toHaveValue(
     'donut',
   );
+  await openLiveExtra(host);
   await close.click();
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
-  await host.getByRole('button', { name: 'Следующий вопрос', exact: true }).click();
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  await expect(
+    stage.getByRole('heading', { name: 'Главный инсайт квартала?', exact: true }),
+  ).toBeVisible();
+  await host.getByRole('tab', { name: 'Подготовка' }).click();
   await expect(host.getByRole('textbox', { name: 'Вопрос', exact: true })).toHaveValue(
     'Главный инсайт квартала?',
   );
   await expect(
     host.getByRole('button', { name: '2. Главный инсайт квартала?', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
-  await expect(host.getByRole('button', { name: 'Запустить вопрос', exact: true })).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Перейти в эфир', exact: true })).toBeVisible();
   await host
     .getByRole('button', { name: '1. Что важно проверить перед запуском встречи?', exact: true })
     .click();
@@ -484,7 +496,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
     void dialog.accept();
   });
   await host.getByRole('button', { name: 'Задать вопрос повторно', exact: true }).click();
-  await expect(close).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Далее', exact: true })).toBeVisible();
   expect(confirmations).toBe(1);
   await host.setViewportSize({ width: 390, height: 844 });
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
@@ -492,7 +504,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   host.once('dialog', (dialog) => void dialog.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
   await host.getByRole('tab', { name: 'История' }).click();
-  await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(3);
+  await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(4);
   await context.close();
 });
 
@@ -606,7 +618,7 @@ test('history charts use reviewed text and closed question exports work during a
     host.getByRole('button', { name: 'Скачать ответы вопроса CSV', exact: true }),
   ).toBeDisabled();
   await host.getByRole('tab', { name: 'Эфир' }).click();
-  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+  await closeCollection(host);
   await host.getByRole('tab', { name: 'История' }).click();
   await host.getByRole('tab', { name: 'Эфир' }).click();
   await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
@@ -641,4 +653,61 @@ test('history charts use reviewed text and closed question exports work during a
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await host.screenshot({ path: '/private/tmp/pulsar-history-mobile.png', fullPage: true });
   await Promise.all([hostContext.close(), firstContext.close(), secondContext.close()]);
+});
+
+test('live navigation autosaves, guards invalid questions and ignores arrow keys in inputs', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`navigation-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-password-navigation');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await prepareQuestionFixture(host);
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
+  await host.getByRole('button', { name: '2. Главный инсайт квартала?', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Сохранится при переходе');
+  await host.getByRole('tab', { name: 'Эфир', exact: true }).click();
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  const stage = host.getByRole('region', { name: 'Текущий вопрос и результаты', exact: true });
+  await expect(
+    stage.getByRole('heading', { name: 'Сохранится при переходе', exact: true }),
+  ).toBeVisible();
+  await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
+  await host
+    .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10', exact: true })
+    .click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('');
+  await host.getByRole('tab', { name: 'Эфир', exact: true }).click();
+  const rail = host.getByRole('region', { name: 'Вопросы эфира', exact: true });
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  await expect(rail.getByRole('alert')).toContainText('Введите вопрос');
+  await expect(
+    stage.getByRole('heading', { name: 'Сохранится при переходе', exact: true }),
+  ).toBeVisible();
+  await host.getByText('Таймер (необязательно)', { exact: true }).click();
+  await host.getByLabel('Таймер, секунд', { exact: true }).focus();
+  await host.keyboard.press('ArrowRight');
+  await expect(
+    stage.getByRole('heading', { name: 'Сохранится при переходе', exact: true }),
+  ).toBeVisible();
+  await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Шкала после правки');
+  await host.getByRole('tab', { name: 'Эфир', exact: true }).click();
+  await host.locator('body').click({ position: { x: 2, y: 2 } });
+  await host.keyboard.press('ArrowRight');
+  await expect(
+    stage.getByRole('heading', { name: 'Шкала после правки', exact: true }),
+  ).toBeVisible();
+  await host.reload();
+  await expect(
+    stage.getByRole('heading', { name: 'Шкала после правки', exact: true }),
+  ).toBeVisible();
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await context.close();
 });

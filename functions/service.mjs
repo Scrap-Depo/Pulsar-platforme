@@ -365,8 +365,7 @@ export function createService(db, onSubmitTiming = () => {}) {
       const rref = mref.collection('rounds').doc(rid);
       const round = required(await tx.get(rref), 'Раунд не найден.');
       if (action === 'like') {
-        if (!round.visible || !round.likesOpen || round.phase !== 'closed')
-          fail('Этап лайков закрыт.');
+        if (!round.visible || !round.likesOpen) fail('Этап лайков закрыт.');
         const id = text(input.responseId, 100);
         if (!/^[a-f0-9]{64}$/.test(id)) fail('Карточка не найдена.');
         const ref = rref.collection('responses').doc(id),
@@ -452,7 +451,6 @@ export function createService(db, onSubmitTiming = () => {}) {
       }
       if (action === 'close') round.phase = 'closed';
       else if (action === 'reveal') {
-        if (round.phase !== 'closed') fail('Сначала закройте приём ответов.');
         const all = await tx.get(rref.collection('responses'));
         for (const snap of all.docs) {
           const response = snap.data();
@@ -461,8 +459,8 @@ export function createService(db, onSubmitTiming = () => {}) {
         }
         round.visible = true;
       } else if (action === 'likes') {
-        if (round.phase !== 'closed' || !round.visible || round.slide.type !== 'open-answers')
-          fail('Сначала закройте вопрос и откройте карточки.');
+        if (!round.visible || round.slide.type !== 'open-answers')
+          fail('Сначала покажите результаты открытого вопроса.');
         round.likesOpen = Boolean(input.enabled);
       } else if (action === 'timer') {
         if (
