@@ -1722,4 +1722,4 @@ a {
   .live-shell .meeting-title { max-width: none; width: 100%; }
 }
 
-.live-shell .type-tile { padding: 10px 6px; min-width: 0; overflow-wrap: anywhere; }
+.live-shell .type-tile { padding: 10px 6px; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
