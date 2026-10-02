@@ -1672,3 +1672,13 @@ a {
 .projector-view .join-corner.waiting strong { font-size: 2.2em; }
 
 .live-shell a.screen-link { display: inline-block; margin: 8px 0 16px; padding: 14px 24px; border-radius: var(--radius); border: 2px solid var(--accent); background: var(--primary); color: var(--text-strong); font-weight: 700; font-size: 1.1rem; }
+
+.projector-view .projector-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 16px; }
+.projector-view .projector-head h2 { margin: 0; flex: 1; min-width: 0; }
+.projector-view .join-qr-corner { flex-shrink: 0; display: grid; justify-items: center; gap: 4px; padding: 10px; border-radius: var(--radius-lg); background: rgba(15, 23, 42, .85); border: 1px solid var(--border-soft); }
+.projector-view .join-qr-corner img { width: clamp(110px, 10vw, 180px); height: auto; background: #fff; border-radius: 8px; }
+.projector-view .join-qr-corner p { margin: 0; font-size: .8em; color: var(--text-muted); }
+.projector-view .join-qr-corner strong { color: var(--text-strong); letter-spacing: .1em; }
+
+.live-shell a.back-to-host { position: fixed; left: 12px; bottom: 12px; z-index: 6; padding: 8px 14px; border-radius: var(--radius); background: rgba(15, 23, 42, .85); border: 1px solid var(--border-soft); font-size: 14px; opacity: .35; transition: opacity .2s; }
+.live-shell a.back-to-host:hover, .live-shell a.back-to-host:focus-visible { opacity: 1; }

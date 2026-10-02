@@ -46,6 +46,11 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
           Нет соединения. Показанные данные могут быть устаревшими.
         </p>
       )}
+      {viewer && sid && (
+        <a className="back-to-host" href={`/?session=${sid}`}>
+          ← К управлению
+        </a>
+      )}
       {!sid ? (
         <form
           className="card entry-form"
@@ -150,10 +155,15 @@ function Connected({
   if (viewer)
     return (
       <>
-        <h2>{data.title}</h2>
-        <p className="join-corner">
-          Код: <strong>{joinCode}</strong>
-        </p>
+        <div className="projector-head">
+          <h2>{data.title}</h2>
+          <aside className="join-qr-corner">
+            <JoinQr url={`${location.origin}/participant?code=${joinCode}`} />
+            <p>
+              Код: <strong>{joinCode}</strong>
+            </p>
+          </aside>
+        </div>
         {data.frozen ? (
           <LiveResults round={data.frozen.round} results={data.frozen.results} />
         ) : published.error ? (
