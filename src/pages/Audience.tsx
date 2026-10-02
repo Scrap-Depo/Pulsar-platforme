@@ -5,6 +5,7 @@ import { useLiveDoc, useLiveList, useOnline } from '../shared/hooks/useLiveData'
 import { command, message } from '../shared/lib/liveApi';
 import ResponseForm from './ResponseForm';
 import LiveResults from './LiveResults';
+import JoinQr from '../shared/ui/JoinQr';
 export default function Audience({ user, viewer }: { user: User; viewer: boolean }) {
   const [code, setCode] = useState(new URLSearchParams(location.search).get('code') ?? '');
   const [sid, setSid] = useState<string | null>(null);
@@ -66,7 +67,13 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
           </p>
         </form>
       ) : (
-        <Connected sessionId={sid} uid={user.uid} viewer={viewer} onLeave={() => setSid(null)} />
+        <Connected
+          sessionId={sid}
+          uid={user.uid}
+          viewer={viewer}
+          joinCode={code}
+          onLeave={() => setSid(null)}
+        />
       )}
     </main>
   );
@@ -75,11 +82,13 @@ function Connected({
   sessionId,
   uid,
   viewer,
+  joinCode,
   onLeave,
 }: {
   sessionId: string;
   uid: string;
   viewer: boolean;
+  joinCode: string;
   onLeave: () => void;
 }) {
   const room = useLiveDoc<Room>(`rooms/${sessionId}`);
@@ -118,12 +127,23 @@ function Connected({
       <section className="card">
         <h2>{data.title}</h2>
         <p>Ожидаем первый вопрос ведущего.</p>
+        {viewer && (
+          <div className="join-corner waiting">
+            <JoinQr url={`${location.origin}/participant?code=${joinCode}`} />
+            <p>
+              Код для входа: <strong>{joinCode}</strong>
+            </p>
+          </div>
+        )}
       </section>
     );
   if (viewer)
     return (
       <>
         <h2>{data.title}</h2>
+        <p className="join-corner">
+          Код: <strong>{joinCode}</strong>
+        </p>
         {data.frozen ? (
           <LiveResults round={data.frozen.round} results={data.frozen.results} />
         ) : published.error ? (

@@ -178,20 +178,26 @@ function SlotForm({
         )}
       </fieldset>
       {round.phase === 'open' ? (
-        <button type="button" disabled={busy || !online || !valid} onClick={submit}>
-          {busy
-            ? 'Отправляется…'
-            : saved
-              ? 'Сохранить изменение'
-              : pending
-                ? 'Повторить отправку'
-                : 'Отправить'}
-        </button>
+        <div className="submit-bar">
+          <button type="button" disabled={busy || !online || !valid} onClick={submit}>
+            {busy
+              ? 'Отправляется…'
+              : saved
+                ? 'Сохранить изменение'
+                : pending
+                  ? 'Повторить отправку'
+                  : 'Отправить'}
+          </button>
+        </div>
       ) : (
         <p>Приём ответов закрыт. Черновик сохранён на этом устройстве.</p>
       )}
       {!online && <p role="status">Нет соединения. Черновик остаётся на устройстве.</p>}
-      <p role="status" aria-live="polite">
+      <p
+        role="status"
+        aria-live="polite"
+        className={!feedback && accepted ? 'answer-status ok' : 'answer-status'}
+      >
         {feedback ||
           (accepted ? 'Ответ принят.' : saved ? 'Ранее отправленный ответ сохранён.' : '')}
       </p>
