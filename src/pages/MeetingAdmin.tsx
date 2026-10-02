@@ -72,7 +72,7 @@ export default function MeetingAdmin({ user }: { user: User }) {
       <header className="host-header">
         <div>
           <h1>Пульсар</h1>
-          <p>Встречи до 100 участников</p>
+          {!id && <p>Встречи до 100 участников</p>}
         </div>
         <button
           onClick={() => {
@@ -175,7 +175,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       }
       if (action === 'save') setDirty(false);
       if (action === 'open') setOpenRequest(null);
-      setNotice('Изменение сохранено.');
+      const notices: Record<string, string> = {
+        open: 'Вопрос запущен. Участники могут отвечать.',
+        save: 'Вопросы и название встречи сохранены.',
+        close: 'Сбор ответов завершён.', reveal: 'Результаты показаны участникам.',
+        appearance: 'Вид результатов обновлён.', timer: 'Таймер обновлён.',
+        finish: 'Встреча завершена.',
+      };
+      setNotice(notices[action] ?? 'Изменение сохранено.');
       return true;
     } catch (e) {
       setError(message(e));
@@ -226,10 +233,20 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     if (!slide.title) slide.title = 'Новый вопрос';
     patch({ slides: [...draft!.slides, slide], currentSlideId: slide.id });
   }
+  const repeated = rounds.data.some((r) => r.slide.id === current.id);
+  const isText = ['open-answers', 'word-cloud'].includes(current.type);
+  const launchSettings = { ...config, cardLimit: current.type === 'open-answers' ? config.cardLimit : 1, moderation: isText && config.moderation } as RoundSettings;
+  const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''}`;
+  async function applyAppearance(slide: SessionSlide) {
+    if (dirty || !round) return;
+    const ok = await run('save', { slides: m.slides.map(s => s.id === slide.id ? slide : s), title: m.title, currentSlideId: m.currentSlideId, version: m.version });
+    if (ok) await run('appearance', { roundId: round.id });
+  }
   function open() {
+    if (repeated && !openRequest && !window.confirm('Задать вопрос повторно? Начнётся новый сбор. Предыдущие ответы останутся в истории.')) return;
     const requestId = openRequest ?? crypto.randomUUID();
     setOpenRequest(requestId);
-    void run('open', { slideId: current.id, settings: config, requestId }).then((ok) => {
+    void run('open', { slideId: current.id, settings: launchSettings, requestId }).then((ok) => {
       if (ok) setTab('live');
     });
   }
@@ -248,7 +265,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           Вход участника
         </a>
         <a href={projectorLink} target="_blank" rel="noreferrer">
-          Открыть проектор
+          Открыть экран проектора
         </a>
       </div>
       {!online && (
@@ -256,52 +273,13 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           Нет соединения. Управление встречей недоступно.
         </p>
       )}
-      <p role="alert">
-        {error || room.error || responses.error || rounds.error || published.error}
-      </p>
-      <p role="status">{busy ? 'Сохраняем…' : notice}</p>
+      {(error || room.error || responses.error || rounds.error || published.error) && <p role="alert">{error || room.error || responses.error || rounds.error || published.error}</p>}
+      {(busy || notice) && <p className="host-notice" role="status">{busy ? 'Выполняем…' : notice}</p>}
       <section className="card control-panel status-panel">
         <div className="status-head">
-          <h2>{m.title}</h2>
-          <span className={`status-badge ${status.tone}`}>{status.label}</span>
+          {view === 'prepare' && !finished ? <label className="meeting-title">Название встречи<input value={draft.title} maxLength={150} disabled={busy} onChange={e => patch({ title: e.target.value })} /></label> : <h2>{m.title}</h2>}
+          <div className="button-row"><span>Код: <strong>{m.joinCode}</strong></span><span className={`status-badge ${status.tone}`}>{status.label}</span></div>
         </div>
-        <p>
-          Код: <strong>{m.joinCode}</strong>
-        </p>
-        <p>
-          Присоединились: {joined}/100. Ответили на текущий вопрос: {answered}. Карточек:{' '}
-          {responses.data.length}.
-        </p>
-        {round && !finished && (
-          <div className="status-progress">
-            <div
-              className="progress-track"
-              role="progressbar"
-              aria-label="Ответили участники"
-              aria-valuemin={0}
-              aria-valuemax={Math.max(joined, answered, 1)}
-              aria-valuenow={answered}
-            >
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${Math.min(100, (answered / Math.max(joined, answered, 1)) * 100)}%`,
-                }}
-              />
-            </div>
-            <span>
-              {answered} из {Math.max(joined, answered)}
-            </span>
-            {round.deadline && round.phase === 'open' && <Countdown deadline={round.deadline} />}
-          </div>
-        )}
-        <p>
-          {finished
-            ? 'Встреча завершена'
-            : round
-              ? `${round.slide.title} — ${round.phase === 'open' ? 'приём открыт' : 'приём закрыт'}; результаты ${round.visible ? 'открыты' : 'скрыты'}`
-              : 'Ожидает первого вопроса'}
-        </p>
       </section>
       <div className="host-tabs" role="tablist" aria-label="Режим работы">
         {(
@@ -325,91 +303,59 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           ))}
       </div>
       {view === 'live' && !finished && (
-        <section className="card control-panel">
-          <h2>Управление эфиром</h2>
-          <p>
-            Для зала откройте чистый экран без пульта и разверните его на проектор (в браузере —
-            F11).
-          </p>
-          <a className="screen-link" href={projectorLink} target="_blank" rel="noreferrer">
-            Экран для аудитории
-          </a>
-          <p className="join-url">{joinLink}</p>
-          <JoinQr url={joinLink} />
-          <button
-            onClick={() => {
-              navigator.clipboard
-                .writeText(joinLink)
-                .then(() => setNotice('Ссылка скопирована.'))
-                .catch(() => setError('Не удалось скопировать. Выделите ссылку выше.'));
-            }}
-          >
-            Скопировать ссылку
-          </button>
-          <fieldset disabled={busy || !online} className="button-row">
-            <legend className="sr-only">Управление эфиром</legend>
-            {!round && <p>Запустите вопрос на вкладке «Подготовка».</p>}
-            {round?.phase === 'open' && (
-              <button className="primary-action" onClick={() => void run('close')}>
-                Завершить сбор ответов
-              </button>
-            )}
-            {round?.phase === 'closed' && !round.visible && (
-              <button className="primary-action" onClick={() => void run('reveal')}>
-                Показать результаты
-              </button>
-            )}
-            {round?.phase === 'closed' && round.visible && (
-              <button className="primary-action" onClick={() => setTab('prepare')}>
-                Следующий вопрос
-              </button>
-            )}
-            <button
-              disabled={!round}
-              onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
-            >
-              {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
-            </button>
-            <button
-              disabled={
-                !round?.visible || round.phase !== 'closed' || round.slide.type !== 'open-answers'
-              }
-              onClick={() => void run('likes', { enabled: !round?.likesOpen })}
-            >
-              {round?.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
-            </button>
-          </fieldset>
-          {round && (
-            <Timer
-              round={round}
-              disabled={busy || finished || !online}
-              onSet={(seconds) => void run('timer', { seconds })}
-            />
+        <>
+          {!round ? (
+            <section className="card section-stack">
+              <h2>Вопрос ещё не запущен</h2>
+              <p>Присоединились: {joined}/100.</p>
+              <button className="primary-action" onClick={() => setTab('prepare')}>Выбрать вопрос</button>
+              <ParticipantConnection url={joinLink} onNotice={setNotice} onError={setError} />
+            </section>
+          ) : (
+            <div className="live-workspace">
+              <section className="card live-stage" aria-label="Текущий вопрос и результаты">
+                <h2>{round.slide.title}</h2>
+                <div className="live-states"><span className={`status-badge ${round.phase === 'open' ? 'open' : 'closed'}`}>{round.phase === 'open' ? 'Сбор ответов идёт' : 'Сбор завершён'}</span><span className="status-badge">{round.visible ? 'Результаты видны участникам' : 'Результаты скрыты от участников'}</span></div>
+                {joined === 0 ? <p>Участники ещё не подключились.</p> : <>
+                  <p>Ответили {answered} из {Math.max(joined, answered)} присоединившихся. Присоединились: {joined}/100.</p>
+                  {round.slide.type === 'open-answers' && <p>Карточек: {responses.data.length}.</p>}
+                  <div className="status-progress"><div className="progress-track" role="progressbar" aria-label="Ответили участники" aria-valuemin={0} aria-valuemax={Math.max(joined, answered)} aria-valuenow={answered}><div className="progress-fill" style={{ width: `${Math.min(100, answered / Math.max(joined, answered) * 100)}%` }} /></div>{round.deadline && round.phase === 'open' && <Countdown deadline={round.deadline} />}</div>
+                </>}
+                <h3>Сейчас на проекторе</h3>
+                {room.data?.frozen && <p className="notice">Проектор заморожен: показывает сохранённый снимок.</p>}
+                <LiveResults round={room.data?.frozen?.round ?? round} results={room.data?.frozen?.results ?? published.data} emptyMessage={responses.loaded && responses.data.length === 0 && !room.data?.frozen ? 'На этот вопрос ещё никто не ответил.' : 'Опубликованных ответов пока нет.'} />
+                {responses.data.some(r => r.moderation === 'pending') && <p>На проверке: {responses.data.filter(r => r.moderation === 'pending').length}. Одобрите ответы ниже, чтобы разрешить их показ.</p>}
+              </section>
+              <aside className="card live-controls" aria-label="Пульт ведущего">
+                <h2>Управление вопросом</h2>
+                <fieldset disabled={busy || !online} className="section-stack">
+                  {round.phase === 'open' && <button className="primary-action" onClick={() => void run('close')}>Завершить сбор ответов</button>}
+                  {round.phase === 'closed' && !round.visible && <button className="primary-action" onClick={() => void run('reveal')}>Показать результаты</button>}
+                  {round.phase === 'closed' && <button className={round.visible ? 'primary-action' : ''} onClick={() => setTab('prepare')}>Следующий вопрос</button>}
+                  {round.phase === 'closed' && round.visible && round.slide.type === 'open-answers' && <button onClick={() => void run('likes', { enabled: !round.likesOpen })}>{round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}</button>}
+                </fieldset>
+                {round.phase === 'open' && <Timer round={round} disabled={busy || !online} onSet={seconds => void run('timer', { seconds })} />}
+                <details className="live-extra">
+                  <summary>Показ и оформление результатов</summary>
+                  <button disabled={busy || !online} onClick={() => void run('freeze', { enabled: !room.data?.frozen })}>{room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}</button>
+                  <p>Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.</p>
+                  <fieldset disabled={busy || !online || dirty}>
+                    <ResultAppearance slide={m.slides.find(s => s.id === round.slide.id) ?? round.slide} onChange={slide => void applyAppearance(slide)} />
+                  </fieldset>
+                  {dirty && <p>Сначала сохраните или отмените изменения в подготовке.</p>}
+                  <p>Оформление применяется сразу. Формулировка и ответы сохраняются.</p>
+                </details>
+                <ParticipantConnection key={round.id} url={joinLink} collapsed onNotice={setNotice} onError={setError} />
+              </aside>
+            </div>
           )}
-          {room.data?.frozen && (
-            <p>
-              Проектор сохраняет последний снимок. Приём ответов управляется отдельно. Скрытие
-              карточки снимает заморозку, чтобы убрать её с экрана.
-            </p>
-          )}
-          <div className="danger-zone">
-            <button
-              className="danger"
-              disabled={busy || !online}
-              onClick={() => {
-                if (window.confirm('Завершить встречу? Приём ответов и лайков прекратится.'))
-                  void run('finish');
-              }}
-            >
-              Завершить встречу
-            </button>
-          </div>
-        </section>
+          <details className="meeting-end"><summary>Завершение встречи</summary><p>Завершит приём ответов по всей встрече. Результаты сохранятся в истории.</p><button className="danger" disabled={busy || !online} onClick={() => { if (window.confirm('Завершить встречу? Приём ответов и лайков прекратится.')) void run('finish'); }}>Завершить встречу</button></details>
+        </>
       )}
       {view === 'prepare' && !finished && (
         <div className="host-workspace">
           <aside className="card slide-list">
-            <h2>Слайды</h2>
+            <h2>Вопросы</h2>
             {draft.slides.map((s, i) => {
               const Icon = slideIcons[s.type];
               return (
@@ -425,17 +371,17 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     </span>
                   </button>
                   <details className="slide-menu">
-                    <summary aria-label={`Действия со слайдом ${i + 1}`}>⋯</summary>
+                    <summary aria-label={`Действия с вопросом ${i + 1}`}>⋯</summary>
                     <div className="slide-menu-items">
                       <button
-                        aria-label={`Поднять слайд ${i + 1}`}
+                        aria-label={`Поднять вопрос ${i + 1}`}
                         disabled={i === 0}
                         onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'up') })}
                       >
                         Выше
                       </button>
                       <button
-                        aria-label={`Опустить слайд ${i + 1}`}
+                        aria-label={`Опустить вопрос ${i + 1}`}
                         disabled={i === draft.slides.length - 1}
                         onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'down') })}
                       >
@@ -454,7 +400,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                           })
                         }
                       >
-                        Удалить слайд
+                        Удалить вопрос
                       </button>
                     </div>
                   </details>
@@ -474,7 +420,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               })}
             </div>
             <details className="template-list">
-              <summary>Готовые упражнения</summary>
+              <summary>Шаблоны вопросов</summary>
               {slideTemplates.map((t) => (
                 <button key={t.id} title={t.description} onClick={() => add(t.type, t.id)}>
                   {t.label}
@@ -485,73 +431,30 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           <section className="card section-stack">
             <h2>Подготовка вопроса</h2>
             <p>
-              Изменения вопроса появятся у участников после сохранения и запуска. Вопрос, на который
-              уже отвечают участники, сохраняет свою формулировку.
+              Подготовьте вопрос, проверьте предпросмотр и сохраните перед запуском.
             </p>
             <div className="editor-grid">
               <div className="editor-form">
                 <fieldset disabled={busy}>
                   <legend className="sr-only">Редактор</legend>
-                  <label>
-                    Название встречи
-                    <input
-                      value={draft.title}
-                      maxLength={150}
-                      onChange={(e) => patch({ title: e.target.value })}
-                    />
-                  </label>
                   <SlideEditor slide={current} onChange={slideChange} />
                 </fieldset>
-                <fieldset disabled={busy}>
+                <fieldset disabled={busy} className="question-settings">
                   <legend>Как собирать ответы</legend>
-                  <label>
-                    Карточек на участника
-                    <select
-                      value={config.cardLimit}
-                      onChange={(e) =>
-                        setConfig({ ...config, cardLimit: Number(e.target.value) as 1 | 3 })
-                      }
-                    >
-                      <option value={1}>1</option>
-                      <option value={3}>3 — для открытых ответов</option>
-                    </select>
-                  </label>
-                  <label className="choice">
-                    <input
-                      type="checkbox"
-                      checked={config.moderation}
-                      onChange={(e) => setConfig({ ...config, moderation: e.target.checked })}
-                    />
-                    Одобрять свободный текст перед публикацией
-                  </label>
-                  <label className="choice">
-                    <input
-                      type="checkbox"
-                      checked={config.immediate}
-                      onChange={(e) => setConfig({ ...config, immediate: e.target.checked })}
-                    />
-                    Показывать результаты сразу при сборе
-                  </label>
+                  {current.type === 'multiple-choice' && <p>Участник выбирает один вариант.</p>}
+                  {current.type === 'open-answers' && <label>Карточек на участника<select value={config.cardLimit} onChange={e => setConfig({ ...config, cardLimit: Number(e.target.value) as 1 | 3 })}><option value={1}>1</option><option value={3}>3</option></select></label>}
+                  {isText && <label className="choice"><input type="checkbox" checked={config.moderation} onChange={e => setConfig({ ...config, moderation: e.target.checked })} />Одобрять свободный текст перед публикацией</label>}
+                  <label>Когда показывать результаты<select value={config.immediate ? 'immediate' : 'after'} onChange={e => setConfig({ ...config, immediate: e.target.value === 'immediate' })}><option value="immediate">Во время сбора</option><option value="after">После команды ведущего</option></select></label>
+                  <small>Эти настройки применятся при запуске выбранного вопроса.</small>
                 </fieldset>
               </div>
               <div className="editor-side">
-                <QuestionPreview key={current.id} slide={current} settings={config} />
-                <p>
-                  Запуск показывает выбранный вопрос участникам и завершает предыдущий сбор. Для
-                  этого запуска ответы собираются заново; прежние доступны в истории.
-                </p>
-                <button
-                  disabled={busy || dirty || !round || !online || current.id !== round.slide.id}
-                  onClick={() => void run('appearance')}
-                >
-                  Обновить вид результатов
-                </button>
-                <p>
-                  Меняет только вид результатов текущего вопроса. Сначала выберите этот вопрос и
-                  сохраните изменения. Формулировка и ответы сохраняются.
-                </p>
+                <QuestionPreview key={current.id} slide={current} settings={launchSettings} />
               </div>
             </div>
+            <p className="launch-summary">{launchSummary}</p>
+            {repeated && <p>Повторный запуск начнёт новый сбор; прежние ответы останутся в истории.</p>}
+            {round?.phase === 'open' && <p>Запуск завершит сбор ответов на текущий вопрос.</p>}
             <div className="save-bar">
               <button
                 disabled={busy || !online || !dirty}
@@ -591,9 +494,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     : 'Запустить вопрос'}
               </button>
               {dirty ? (
-                <p className="save-state dirty">Есть несохранённые изменения.</p>
+                <p className="save-state dirty">Есть несохранённые изменения. Сохраните перед запуском.</p>
               ) : (
-                <p className="save-state">Все изменения сохранены.</p>
+                <p className="save-state">Вопрос сохранён.</p>
               )}
             </div>
           </section>
@@ -611,7 +514,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           }
         />
       )}
-      {round && (view === 'live' ? !finished : finished && view === 'results') && (
+      {round && finished && view === 'results' && (
         <section className="card">
           <h2>Сейчас на проекторе</h2>
           <LiveResults
@@ -678,26 +581,6 @@ function SlideEditor({
   onChange: (slide: SessionSlide) => void;
 }) {
   const patch = (data: Record<string, unknown>) => onChange({ ...slide, ...data } as SessionSlide);
-  const choices =
-    slide.type === 'multiple-choice'
-      ? ['bar', 'pie', 'donut']
-      : slide.type === 'pulse'
-        ? ['bars', 'line', 'scale']
-        : slide.type === 'word-cloud'
-          ? ['cloud', 'bubbles', 'constellation']
-          : ['cards'];
-  const labels: Record<string, string> = {
-    bar: 'Столбцы',
-    bars: 'Столбцы',
-    pie: 'Круг',
-    donut: 'Кольцо',
-    line: 'Линия распределения',
-    scale: 'Среднее на шкале',
-    cloud: 'Облако',
-    bubbles: 'Пузыри',
-    constellation: 'Сетка слов',
-    cards: 'Карточки',
-  };
   return (
     <div className="section-stack">
       <label>
@@ -748,17 +631,7 @@ function SlideEditor({
           >
             Добавить вариант
           </button>
-          <label>
-            Подписи результатов
-            <select
-              value={slide.resultDisplay}
-              onChange={(e) => patch({ resultDisplay: e.target.value })}
-            >
-              <option value="both">Голоса и проценты</option>
-              <option value="votes">Голоса</option>
-              <option value="percent">Проценты</option>
-            </select>
-          </label>
+
         </>
       )}
       {slide.type === 'pulse' && (
@@ -791,7 +664,43 @@ function SlideEditor({
           Убирать лишние пробелы и пунктуацию
         </label>
       )}
-      <label>
+      <details><summary>Оформление результатов</summary><ResultAppearance slide={slide} onChange={onChange} /></details>
+    </div>
+  );
+}
+function ResultAppearance({ slide, onChange }: { slide: SessionSlide; onChange: (slide: SessionSlide) => void }) {
+  const patch = (data: Record<string, unknown>) => onChange({ ...slide, ...data } as SessionSlide);
+  const choices =
+    slide.type === 'multiple-choice'
+      ? ['bar', 'pie', 'donut']
+      : slide.type === 'pulse'
+        ? ['bars', 'line', 'scale']
+        : slide.type === 'word-cloud'
+          ? ['cloud', 'bubbles', 'constellation']
+          : ['cards'];
+  const labels: Record<string, string> = {
+    bar: 'Столбцы',
+    bars: 'Столбцы',
+    pie: 'Круг',
+    donut: 'Кольцо',
+    line: 'Линия распределения',
+    scale: 'Среднее на шкале',
+    cloud: 'Облако',
+    bubbles: 'Пузыри',
+    constellation: 'Сетка слов',
+    cards: 'Карточки',
+  };
+  return <div>{slide.type === 'multiple-choice' && <>          <label>
+            Подписи результатов
+            <select
+              value={slide.resultDisplay}
+              onChange={(e) => patch({ resultDisplay: e.target.value })}
+            >
+              <option value="both">Голоса и проценты</option>
+              <option value="votes">Голоса</option>
+              <option value="percent">Проценты</option>
+            </select>
+          </label></>}      <label>
         Вид результата
         <select
           value={slide.visualization}
@@ -803,9 +712,14 @@ function SlideEditor({
             </option>
           ))}
         </select>
-      </label>
-    </div>
-  );
+      </label></div>;
+}
+function ParticipantConnection({ url, collapsed = false, onNotice, onError }: { url: string; collapsed?: boolean; onNotice: (text: string) => void; onError: (text: string) => void }) {
+  return <details className="participant-connection" open={!collapsed}>
+    <summary>Подключение участников</summary>
+    <p>Участники сканируют QR-код или открывают ссылку на своём устройстве.</p>
+    <div className="connection-content"><JoinQr url={url} /><div><p className="join-url">{url}</p><button onClick={() => { navigator.clipboard.writeText(url).then(() => onNotice('Ссылка скопирована.')).catch(() => onError('Не удалось скопировать. Выделите ссылку выше.')); }}>Скопировать ссылку</button></div></div>
+  </details>;
 }
 type ModerationFilter = 'pending' | 'approved' | 'hidden' | 'all';
 function Moderation({
@@ -1002,6 +916,7 @@ function Timer({
     : null;
   return (
     <div className="timer">
+      <p className="timer-help">Таймер только предупреждает: по окончании сбор останется открытым.</p>
       <label>
         Таймер, секунд
         <input

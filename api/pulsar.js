@@ -17,9 +17,21 @@ async function load() {
     if (process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
       throw new Error('Emulators must not be enabled in the deployed API.');
     }
-    const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || 'null');
-    if (!credentials?.project_id || credentials.project_id !== process.env.VITE_FIREBASE_PROJECT_ID) {
-      throw new Error('Firebase server and browser must use the same project.');
+    // Reasons are logged by the HTTP handler; they never include credential contents.
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not set for this deployment.');
+    }
+    let credentials;
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } catch {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.');
+    }
+    if (!credentials?.project_id || !credentials.private_key || !credentials.client_email) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON lacks project_id, private_key or client_email.');
+    }
+    if (credentials.project_id !== process.env.VITE_FIREBASE_PROJECT_ID) {
+      throw new Error('VITE_FIREBASE_PROJECT_ID is missing or differs from the service account project.');
     }
     const app = getApps().find((app) => app.name === 'pulsar-server') || initializeApp({
       credential: cert(credentials),

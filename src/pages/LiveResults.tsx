@@ -7,9 +7,11 @@ import { WordCloudItem } from '../features/word-cloud/model/types';
 export default function LiveResults({
   round,
   results,
+  emptyMessage = 'Опубликованных ответов пока нет.',
 }: {
   round: Round;
   results: PublicResponse[];
+  emptyMessage?: string;
 }) {
   const slide = round.slide;
   if (!round.visible)
@@ -22,7 +24,7 @@ export default function LiveResults({
     return (
       <div className="card live-results">
         <h2>{slide.title}</h2>
-        <p>Опубликованных ответов пока нет.</p>
+        <p>{emptyMessage}</p>
       </div>
     );
   if (slide.type === 'multiple-choice')

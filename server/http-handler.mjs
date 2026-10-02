@@ -22,8 +22,8 @@ export function createHttpHandler(getServices) {
     let services;
     try {
       services = getServices();
-    } catch {
-      console.error('Pulsar server configuration is unavailable.');
+    } catch (error) {
+      console.error('Pulsar server configuration is unavailable:', error instanceof Error ? error.message : 'unknown');
       return reply(503, { error: { message: 'Сервер встреч не настроен. Обратитесь к администратору.' } });
     }
     let identity;

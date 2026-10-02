@@ -1644,7 +1644,7 @@ a {
 
 .editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .editor-side { position: sticky; top: 12px; display: grid; gap: 12px; }
-.save-bar { position: sticky; bottom: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: rgba(15, 23, 42, .95); backdrop-filter: blur(8px); }
+.save-bar { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: rgba(15, 23, 42, .95); backdrop-filter: blur(8px); }
 .save-bar .save-state { margin: 0 0 0 auto; color: var(--text-muted); }
 .save-bar .save-state.dirty { color: var(--warn); font-weight: 600; }
 @media (max-width: 1100px) {
@@ -1683,6 +1683,42 @@ a {
 .live-shell a.back-to-host { position: fixed; left: 12px; bottom: 12px; z-index: 6; padding: 8px 14px; border-radius: var(--radius); background: rgba(15, 23, 42, .85); border: 1px solid var(--border-soft); font-size: 14px; opacity: .35; transition: opacity .2s; }
 .live-shell a.back-to-host:hover, .live-shell a.back-to-host:focus-visible { opacity: 1; }
 
-.editor-side { position: static; }
 .save-bar .launch { margin-left: auto; }
 .save-bar .launch + .save-state { margin-left: 0; }
+
+/* Host preparation and live workspace */
+.host-view .host-header { margin-bottom: 12px; }
+.host-view .host-header h1 { font-size: 26px; }
+.host-view > .section-stack { gap: 12px; }
+.host-view .status-panel { padding: 12px 16px; }
+.live-shell .meeting-title { margin: 0; flex: 1; max-width: 520px; font-size: 13px; }
+.live-shell .meeting-title input { padding: 8px 12px; font-size: 18px; }
+.host-notice { margin: 0; }
+.host-tabs { margin: 0; }
+.host-workspace { grid-template-columns: minmax(220px, .55fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.live-shell .question-preview { padding: 12px; border: 0; }
+.live-shell .question-preview .card { padding: 14px; }
+.launch-summary { padding: 12px; margin: 0; border-radius: var(--radius); background: var(--surface); }
+.question-settings { margin-top: 16px !important; }
+.live-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 350px); gap: 16px; align-items: start; }
+.live-stage h2, .live-controls h2 { margin: 0 0 12px; }
+.live-states { display: flex; flex-wrap: wrap; gap: 8px; }
+.live-stage .live-results > h2 { display: none; }
+.live-controls { display: grid; gap: 14px; }
+.live-controls .primary-action { width: 100%; padding: 12px; font-size: 1rem; }
+.live-controls .timer { margin: 0; }
+.live-controls .timer-help { margin: 0; font-size: 13px; color: var(--text-muted); }
+.live-extra, .participant-connection { border-top: 1px solid var(--border-soft); padding-top: 12px; }
+.live-extra summary, .participant-connection summary, .meeting-end summary, .editor-form summary { cursor: pointer; min-height: 32px; }
+.connection-content { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.connection-content > div { flex: 1; min-width: 150px; }
+.connection-content button { margin-top: 12px; }
+.meeting-end { padding: 12px 16px; }
+@media (min-width: 1101px) { .editor-side { position: sticky; top: 12px; } }
+@media (max-width: 1100px) { .host-workspace { grid-template-columns: 220px minmax(0, 1fr); } }
+@media (max-width: 800px) {
+  .host-workspace, .live-workspace { grid-template-columns: minmax(0, 1fr); }
+  .live-controls { grid-row: 1; }
+  .host-view .host-header { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .live-shell .meeting-title { max-width: none; width: 100%; }
+}

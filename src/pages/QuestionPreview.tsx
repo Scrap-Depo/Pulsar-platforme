@@ -19,8 +19,7 @@ export default function QuestionPreview({ slide, settings }: { slide: SessionSli
   }));
   return (
     <section className="question-preview section-stack" aria-label="Предпросмотр выбранного вопроса">
-      <h3>Предпросмотр перед запуском</h3>
-      <p>Здесь видны изменения из редактора. Участники увидят вопрос только после запуска.</p>
+      <h3>Предпросмотр</h3>
       <div className="button-row" role="group" aria-label="Экран предпросмотра">
         <button type="button" aria-pressed={screen === 'participant'} onClick={() => setScreen('participant')}>Экран участника</button>
         <button type="button" aria-pressed={screen === 'projector'} onClick={() => setScreen('projector')}>Экран проектора</button>
@@ -62,7 +61,7 @@ export default function QuestionPreview({ slide, settings }: { slide: SessionSli
             {slide.type === 'word-cloud' && <label>Слово или короткая фраза<input placeholder="До 40 символов" /></label>}
             <button type="button">Отправить</button>
           </fieldset>
-          <p>Это предпросмотр. Ответы отсюда не отправляются.</p>
+          <p>Ответы не отправляются.</p>
         </div>
       )}
     </section>

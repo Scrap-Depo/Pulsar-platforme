@@ -30,7 +30,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await preview.getByRole('button', { name: 'Экран участника' }).click();
   const link = await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href');
   const projectorLink = await host
-    .getByRole('link', { name: 'Открыть проектор' })
+    .getByRole('link', { name: 'Открыть экран проектора' })
     .getAttribute('href');
   const pContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p2Context = await browser.newContext({ viewport: { width: 360, height: 740 } });
@@ -43,7 +43,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
     await expect(page.getByText('Ожидаем первый вопрос ведущего.')).toBeVisible();
   }
   await host.getByRole('button', { name: '2. Главный инсайт квартала?' }).click();
-  await host.getByLabel('Показывать результаты сразу при сборе').uncheck();
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
   await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('Черновик, который не должен пропасть');
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
@@ -60,7 +60,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await p.getByRole('button', { name: 'Отправить', exact: true }).click();
   await expect(p.getByText('Ответ принят.', { exact: true })).toBeVisible();
   await expect(
-    host.getByText('Присоединились: 2/100. Ответили на текущий вопрос: 2. Карточек: 2.'),
+    host.getByText('Ответили 2 из 2 присоединившихся. Присоединились: 2/100.'),
   ).toBeVisible();
   await expect(p.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
   await host.getByRole('button', { name: 'Одобрить', exact: true }).first().click();
@@ -73,6 +73,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   const proj = await projContext.newPage();
   await proj.goto(projectorLink!);
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
+  await host.getByText('Показ и оформление результатов', { exact: true }).click();
   await host.getByRole('button', { name: 'Заморозить проектор', exact: true }).click();
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   await host
@@ -84,6 +85,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
   await proj.reload();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
+  await host.getByText('Показ и оформление результатов', { exact: true }).click();
   await host.getByRole('button', { name: 'Снять заморозку', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
   await p.getByRole('button', { name: '7', exact: true }).click();
@@ -98,6 +100,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await expect(p.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await host.screenshot({ path: 'test-results/host.png', fullPage: true });
   await p.screenshot({ path: 'test-results/participant.png', fullPage: true });
+  await host.getByText('Завершение встречи', { exact: true }).click();
   host.once('dialog', (d) => d.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
   await expect(p.getByText('Встреча завершена. Спасибо за участие.')).toBeVisible();
@@ -130,10 +133,11 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(host.getByRole('link', { name: 'Вход участника' })).toBeVisible();
   const url = host.url();
   await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Какой вариант выбрать?');
+  await host.getByText('Оформление результатов', { exact: true }).click();
   await host.getByRole('combobox', { name: 'Вид результата', exact: true }).selectOption('donut');
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
-  await expect(host.getByText('Есть несохранённые изменения.')).toHaveCount(0);
-  await host.getByLabel('Показывать результаты сразу при сборе').uncheck();
+  await expect(host.getByText('Есть несохранённые изменения.', { exact: false })).toHaveCount(0);
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
   await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
   const pc = await browser.newContext({ viewport: { width: 360, height: 740 } });
   const p = await pc.newPage();
@@ -146,7 +150,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await p.getByRole('radio').nth(1).check();
   await p.getByRole('button', { name: 'Сохранить изменение' }).click();
   await expect(
-    host.getByText('Присоединились: 1/100. Ответили на текущий вопрос: 1. Карточек: 1.'),
+    host.getByText('Ответили 1 из 1 присоединившихся. Присоединились: 1/100.'),
   ).toBeVisible();
   await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
@@ -157,7 +161,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await host.getByRole('button', { name: '4. Введите слово или короткую ассоциацию' }).click();
-  await host.getByLabel('Показывать результаты сразу при сборе').check();
+  await host.getByLabel('Когда показывать результаты').selectOption('immediate');
   await host.getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true }).click();
   await p.getByLabel('Ваш ответ', { exact: true }).fill('а'.repeat(41));
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
