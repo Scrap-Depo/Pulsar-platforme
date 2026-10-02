@@ -21,6 +21,16 @@
     "check:transition": "node scripts/build-transition-rules.mjs --check",
     "test:transition": "node --test tests/transition.test.mjs"
   },
+  "overrides": {
+    "gaxios": {
+      "uuid": "^11.1.1"
+    },
+    "@grpc/grpc-js": "^1.14.5",
+    "cloudevents": {
+      "uuid": "^11.1.1"
+    },
+    "jwks-rsa": "3.2.2"
+  },
   "dependencies": {
     "firebase": "^12.11.0",
     "firebase-admin": "^14.5.0",
@@ -41,14 +51,5 @@
     "prettier": "^3.9.9",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
-  },
-  "overrides": {
-    "gaxios": {
-      "uuid": "^11.1.1"
-    },
-    "@grpc/grpc-js": "^1.14.5",
-    "cloudevents": {
-      "uuid": "^11.1.1"
-    }
   }
 }
