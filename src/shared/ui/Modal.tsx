@@ -7,7 +7,10 @@ type ModalProps = {
 export default function Modal({ children }: ModalProps) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       style={{
+        zIndex: 20,
         position: 'fixed',
         inset: 0,
         background: 'rgba(2, 6, 23, 0.72)',
