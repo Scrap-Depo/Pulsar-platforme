@@ -1732,7 +1732,7 @@ a {
 
 .live-shell .type-tile { padding: 10px 6px; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
 
-/* Keep the current question title once, while retaining a different frozen title. */
+/* Show the current question title only once. */
 .projector-same-question h1, .projector-same-question h2 { display: none; }
 .launch-controls { margin-left: auto; max-width: 440px; }
 .launch-controls p { margin: 8px 0; font-size: 14px; }

@@ -336,14 +336,14 @@ export function createService(db, onSubmitTiming = () => {}) {
           settings: config,
           phase: 'open',
           visible: config.immediate,
-          likesOpen: false,
+          likesOpen: slide.type === 'open-answers' && config.immediate,
           createdAt: now(),
           deadline: null,
         };
         if (previous?.exists) tx.update(previousRef, { phase: 'closed', likesOpen: false });
         tx.create(newRef, round);
         tx.update(mref, { status: 'live', liveSlideId: slide.id, roundId: rid });
-        tx.update(roomRef, { status: 'live', round: publicRound(round) });
+        tx.update(roomRef, { status: 'live', round: publicRound(round), frozen: null });
         return { id: rid };
       }
       if (action === 'finish') {
@@ -373,6 +373,7 @@ export function createService(db, onSubmitTiming = () => {}) {
         const [ms, rs, ls] = await tx.getAll(mref.collection('members').doc(uid), ref, lref);
         if (!ms.exists) fail('Нет доступа участника.');
         const response = required(rs, 'Карточка не найдена.');
+        if (response.participantId === uid) fail('Нельзя поставить лайк своему ответу.');
         if (response.moderation !== 'approved' || response.type !== 'open-answers')
           fail('Карточка скрыта.');
         const old = value(ls),
@@ -431,23 +432,14 @@ export function createService(db, onSubmitTiming = () => {}) {
             tx.set(rref.collection('published').doc(response.id), publicResponse(response));
           else tx.delete(rref.collection('published').doc(response.id));
         }
-        // Hiding content takes precedence over retaining it in a frozen frame.
+        // Clear snapshots left by older versions.
         if (input.status === 'hidden') tx.update(roomRef, { frozen: null });
         return { count: docs.length };
       }
+      // Compatibility for older clients: freezing is retired, so only clear old snapshots.
       if (action === 'freeze') {
-        const room = required(await tx.get(roomRef), 'Экран не найден.');
-        const published = round.visible ? await tx.get(rref.collection('published')) : null;
-        tx.update(roomRef, {
-          frozen: input.enabled
-            ? {
-                round: publicRound(round),
-                results: published?.docs.map((s) => s.data()) ?? [],
-                capturedAt: now(),
-              }
-            : null,
-        });
-        return { frozen: Boolean(input.enabled), wasFrozen: Boolean(room.frozen) };
+        tx.update(roomRef, { frozen: null });
+        return { frozen: false };
       }
       if (action === 'close') round.phase = 'closed';
       else if (action === 'reveal') {
@@ -458,6 +450,7 @@ export function createService(db, onSubmitTiming = () => {}) {
             tx.set(rref.collection('published').doc(response.id), publicResponse(response));
         }
         round.visible = true;
+        if (round.slide.type === 'open-answers') round.likesOpen = true;
       } else if (action === 'likes') {
         if (!round.visible || round.slide.type !== 'open-answers')
           fail('Сначала покажите результаты открытого вопроса.');
@@ -480,7 +473,7 @@ export function createService(db, onSubmitTiming = () => {}) {
           if (source[key] != null) round.slide[key] = source[key];
       } else fail('Неизвестное действие.');
       tx.set(rref, round);
-      tx.update(roomRef, { round: publicRound(round) });
+      tx.update(roomRef, { round: publicRound(round), frozen: null });
       return { ok: true };
     });
   };

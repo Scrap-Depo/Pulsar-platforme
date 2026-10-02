@@ -114,7 +114,7 @@ test('isolation, auth, private collection, idempotent submission and closed gate
   await assertSucceeds(getDoc(doc(env.authenticatedContext('viewer').firestore(), `rooms/${sid}`)));
 });
 
-test('moderation, revision conflicts, freeze, likes and historical rounds', async () => {
+test('moderation, revision conflicts, retired freeze, likes and historical rounds', async () => {
   const { id: sid, joinCode } = await meeting('test-moderation');
   await call('a', 'join', { code: joinCode });
   await call('b', 'join', { code: joinCode });
@@ -138,9 +138,13 @@ test('moderation, revision conflicts, freeze, likes and historical rounds', asyn
   const raw = (await db.doc(`meetings/${sid}/rounds/text1/responses/${sent.id}`).get()).data();
   assert.equal(raw.value, 'Оригинал');
   assert.equal(raw.displayValue, 'Редакция');
-  await call('host-a', 'freeze', { sessionId: sid, enabled: true });
+  await db
+    .doc(`rooms/${sid}`)
+    .update({ frozen: { round: { id: 'old' }, results: [], capturedAt: 'old' } });
+  const freeze = await call('host-a', 'freeze', { sessionId: sid, enabled: true });
+  assert.equal(freeze.frozen, false);
+  assert.equal((await db.doc(`rooms/${sid}`).get()).data().frozen, null);
   await send('b', sid, 'text1', 'Второй');
-  assert.equal((await db.doc(`rooms/${sid}`).get()).data().frozen.results.length, 1);
   await send('a', sid, 'text1', 'Изменение', { revision: 1, requestId: 'edit' });
   assert.equal((await db.collection(`meetings/${sid}/rounds/text1/published`).get()).size, 0);
   await assert.rejects(
@@ -170,7 +174,9 @@ test('moderation, revision conflicts, freeze, likes and historical rounds', asyn
   });
   assert.equal((await db.doc(`rooms/${sid}`).get()).data().frozen, null);
   await assert.rejects(call('b', 'like', { sessionId: sid, responseId: sent.id, enabled: true }));
+  await db.doc(`rooms/${sid}`).update({ frozen: { round: { id: 'old' }, results: [] } });
   await call('host-a', 'open', { sessionId: sid, slideId: 'text', requestId: 'text2' });
+  assert.equal((await db.doc(`rooms/${sid}`).get()).data().frozen, null);
   assert.equal((await db.collection(`meetings/${sid}/rounds/text2/responses`).get()).size, 0);
   assert.equal((await db.collection(`meetings/${sid}/rounds/text1/responses`).get()).size, 2);
 });
@@ -515,4 +521,33 @@ test('reveal and likes during collection, revisions reset likes, finish closes c
   assert.equal(closed.phase, 'closed');
   assert.equal(closed.likesOpen, false);
   await assert.rejects(send('b', sid, 'live-controls', 'Поздно'));
+});
+
+test('open answers automatically allow likes and reject liking own card', async () => {
+  const { id: sid, joinCode } = await meeting('test-self-like');
+  await call('a', 'join', { code: joinCode });
+  await call('b', 'join', { code: joinCode });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'auto-likes',
+    settings: { moderation: false },
+  });
+  assert.equal((await db.doc(`meetings/${sid}/rounds/auto-likes`).get()).data().likesOpen, true);
+  const sent = await send('a', sid, 'auto-likes', 'Моя карточка');
+  await assert.rejects(
+    call('a', 'like', { sessionId: sid, responseId: sent.id, enabled: true }),
+    /своему/,
+  );
+  await call('b', 'like', { sessionId: sid, responseId: sent.id, enabled: true });
+  await call('b', 'like', { sessionId: sid, responseId: sent.id, enabled: true });
+  assert.equal(
+    (await db.doc(`meetings/${sid}/rounds/auto-likes/responses/${sent.id}`).get()).data().likes,
+    1,
+  );
+  await call('b', 'like', { sessionId: sid, responseId: sent.id, enabled: false });
+  assert.equal(
+    (await db.doc(`meetings/${sid}/rounds/auto-likes/responses/${sent.id}`).get()).data().likes,
+    0,
+  );
 });

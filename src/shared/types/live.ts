@@ -51,5 +51,4 @@ export type Room = {
   status: Meeting['status'];
   round: Round | null;
   joinedCount: number;
-  frozen: { round: Round; results: PublicResponse[]; capturedAt: string } | null;
 };

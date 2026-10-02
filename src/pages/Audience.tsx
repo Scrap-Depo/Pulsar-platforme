@@ -169,6 +169,7 @@ function Connected({
   );
   const [error, setError] = useState('');
   const [liking, setLiking] = useState<string | null>(null);
+  const [editingRound, setEditingRound] = useState<string | null>(null);
   if (room.error || (room.loaded && !room.data))
     return (
       <section className="card">
@@ -213,9 +214,7 @@ function Connected({
             </p>
           </aside>
         </div>
-        {data.frozen ? (
-          <LiveResults round={data.frozen.round} results={data.frozen.results} />
-        ) : published.error ? (
+        {published.error ? (
           <p role="alert">{published.error}</p>
         ) : (
           <LiveResults round={round} results={published.data} />
@@ -233,6 +232,9 @@ function Connected({
       setLiking(null);
     }
   }
+  const ownAnswers = Object.values(own.data?.answers ?? {});
+  const sentText = round.slide.type === 'open-answers' && ownAnswers.length > 0;
+  const showForm = !sentText || editingRound === round.id;
   return (
     <>
       <h2>{data.title}</h2>
@@ -240,14 +242,26 @@ function Connected({
         <p role="alert">{own.error}</p>
       ) : !own.loaded ? (
         <p>Загружаем ваши ответы…</p>
-      ) : (
+      ) : showForm ? (
         <ResponseForm
           key={round.id}
           sessionId={sessionId}
           uid={uid}
           round={round}
-          own={Object.values(own.data?.answers ?? {})}
+          own={ownAnswers}
+          onSent={() => setEditingRound(null)}
         />
+      ) : (
+        <section className="card">
+          <p role="status">Ответ отправлен.</p>
+          {round.phase === 'open' && (
+            <button onClick={() => setEditingRound(round.id)}>
+              {round.settings.cardLimit === 3
+                ? 'Добавить или изменить мои ответы'
+                : 'Изменить мой ответ'}
+            </button>
+          )}
+        </section>
       )}
       {round.visible && round.settings.showOnPhones === true && !round.likesOpen && (
         <>
@@ -255,9 +269,13 @@ function Connected({
           {published.error && <p role="alert">{published.error}</p>}
         </>
       )}
-      {round.likesOpen && (
+      {sentText && !showForm && !round.likesOpen && <p>Выбор полезных идей пока закрыт ведущим.</p>}
+      {round.likesOpen && sentText && !showForm && (
         <section className="card">
           <h2>Выберите полезные идеи</h2>
+          {published.data.every((response) =>
+            ownAnswers.some((answer) => answer.id === response.id),
+          ) && <p>Другие ответы появятся здесь. Если включена модерация — после одобрения.</p>}
           {published.data.map((r) => {
             const enabled = likes.data.some(
               (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
@@ -265,9 +283,13 @@ function Connected({
             return (
               <article key={r.id}>
                 <p>{r.value}</p>
-                <button disabled={liking !== null} onClick={() => void toggle(r, !enabled)}>
-                  {enabled ? 'Снять лайк' : 'Поставить лайк'} ({r.likes})
-                </button>
+                {ownAnswers.some((answer) => answer.id === r.id) ? (
+                  <p>Ваш ответ · Лайков: {r.likes}</p>
+                ) : (
+                  <button disabled={liking !== null} onClick={() => void toggle(r, !enabled)}>
+                    {enabled ? 'Снять лайк' : 'Нравится'} ({r.likes})
+                  </button>
+                )}
               </article>
             );
           })}

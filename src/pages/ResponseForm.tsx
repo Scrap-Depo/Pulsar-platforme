@@ -9,11 +9,13 @@ export default function ResponseForm({
   uid,
   round,
   own,
+  onSent,
 }: {
   sessionId: string;
   uid: string;
   round: Round;
   own: OwnResponse[];
+  onSent?: () => void;
 }) {
   const [slot, setSlot] = useState(0);
   const count = round.slide.type === 'open-answers' ? round.settings.cardLimit : 1;
@@ -36,6 +38,7 @@ export default function ResponseForm({
         uid={uid}
         round={round}
         slot={slot}
+        onSent={onSent}
         saved={own.find((r) => r.slot === slot)}
       />
     </section>
@@ -47,12 +50,14 @@ function SlotForm({
   round,
   slot,
   saved,
+  onSent,
 }: {
   sessionId: string;
   uid: string;
   round: Round;
   slot: number;
   saved?: OwnResponse;
+  onSent?: () => void;
 }) {
   const key = `pulsar.draft.v2:${uid}:${sessionId}:${round.id}:${slot}`;
   const [initial] = useState(() => {
@@ -128,6 +133,7 @@ function SlotForm({
       setRevision(result.revision);
       persist(value, attempt, result.revision);
       setConfirmed(value);
+      onSent?.();
       setFeedback('');
       // Keep the stable attempt ID until the user changes the draft. Retrying
       // after an ambiguous timeout or a reload cannot create another card.

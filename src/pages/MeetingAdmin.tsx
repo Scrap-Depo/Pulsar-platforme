@@ -246,8 +246,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   }
   const repeated = rounds.data.some((r) => r.slide.id === current.id);
   const currentIsOpen = round?.slide.id === current.id && round.phase === 'open';
-  const projectorRound = room.data?.frozen?.round ?? round;
-  const sameProjectorTitle = projectorRound?.slide.title === round?.slide.title;
   async function launchFromLive(slide: SessionSlide) {
     if (busyRef.current || navigationRef.current || !online || finished) return;
     setNavigationError('');
@@ -497,18 +495,15 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   </>
                 )}
                 <h3>Сейчас на проекторе</h3>
-                {room.data?.frozen && (
-                  <p className="notice">Проектор заморожен: показывает сохранённый снимок.</p>
-                )}
-                <div className={sameProjectorTitle ? 'projector-same-question' : undefined}>
-                  {!projectorRound?.visible && sameProjectorTitle ? (
+                <div className="projector-same-question">
+                  {!round.visible ? (
                     <p>На экране проектора только вопрос.</p>
                   ) : (
                     <LiveResults
-                      round={projectorRound!}
-                      results={room.data?.frozen?.results ?? published.data}
+                      round={round}
+                      results={published.data}
                       emptyMessage={
-                        responses.loaded && responses.data.length === 0 && !room.data?.frozen
+                        responses.loaded && responses.data.length === 0
                           ? 'На этот вопрос ещё никто не ответил.'
                           : 'Опубликованных ответов пока нет.'
                       }
@@ -560,15 +555,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       onSet={(seconds) => void run('timer', { seconds })}
                     />
                   )}
-                  <button
-                    disabled={busy || !online}
-                    onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
-                  >
-                    {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
-                  </button>
-                  <small>
-                    Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.
-                  </small>
                   <details className="live-extra">
                     <summary>Показ и оформление результатов</summary>
                     <fieldset disabled={busy || !online || dirty}>
@@ -900,10 +886,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       {round && finished && view === 'results' && (
         <section className="card">
           <h2>Сейчас на проекторе</h2>
-          <LiveResults
-            round={room.data?.frozen?.round ?? round}
-            results={room.data?.frozen?.results ?? published.data}
-          />
+          <LiveResults round={round} results={published.data} />
         </section>
       )}
       {view === 'results' && (

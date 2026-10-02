@@ -114,7 +114,9 @@ test('question toolbar preserves edits, order and the saved meeting name', async
   await context.close();
 });
 
-test('host, two mobile participants and independent frozen projector', async ({ browser }) => {
+test('host, two mobile participants and projector following the current question', async ({
+  browser,
+}) => {
   const hostContext = await browser.newContext();
   const host = await hostContext.newPage();
   const errors: string[] = [];
@@ -184,14 +186,27 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await p.getByLabel('Ваш ответ', { exact: true }).fill('Черновик, который не должен пропасть');
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
   await p2.getByRole('button', { name: 'Отправить', exact: true }).click();
-  await expect(p2.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p2
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p2.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
+  await p2.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Изменённая формулировка');
   await expect(p2.getByRole('button', { name: 'Обновить ответ', exact: true })).toBeEnabled();
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
-  await expect(p2.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p2
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p2.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
   await p2.reload();
   await p2.getByRole('button', { name: 'Подключиться', exact: true }).click();
-  await expect(p2.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p2
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p2.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
   await expect(p.getByLabel('Ваш ответ', { exact: true })).toHaveValue(
     'Черновик, который не должен пропасть',
   );
@@ -201,7 +216,11 @@ test('host, two mobile participants and independent frozen projector', async ({ 
     'Черновик, который не должен пропасть',
   );
   await p.getByRole('button', { name: 'Отправить', exact: true }).click();
-  await expect(p.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
   await expect(
     host.getByText('Ответили 2 из 2 присоединившихся. Присоединились: 2/100.'),
   ).toBeVisible();
@@ -217,8 +236,14 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   const proj = await projContext.newPage();
   await proj.goto(projectorLink!);
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
+  // Only the local emulator: preserve an old snapshot to verify upgrade compatibility.
+  const sid = new URL(host.url()).searchParams.get('session')!;
+  const roomUrl = `http://127.0.0.1:8185/v1/projects/demo-pulsar/databases/(default)/documents/rooms/${sid}`;
+  const oldRoom = await host.request.get(roomUrl, { headers: { Authorization: 'Bearer owner' } });
+  expect(oldRoom.ok()).toBeTruthy();
+  const oldRound = (await oldRoom.json()).fields.round;
   await openLiveExtra(host);
-  await host.getByRole('button', { name: 'Заморозить проектор', exact: true }).click();
+  await expect(host.getByRole('button', { name: 'Заморозить проектор' })).toHaveCount(0);
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   await host
     .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10' })
@@ -229,29 +254,57 @@ test('host, two mobile participants and independent frozen projector', async ({ 
     .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
     .click();
   await expect(p.getByText('Выберите оценку от 1 до 10', { exact: true })).toBeVisible();
-  const frozenStage = host.getByRole('region', { name: 'Текущий вопрос и результаты' });
+  const currentStage = host.getByRole('region', { name: 'Текущий вопрос и результаты' });
   await expect(
-    frozenStage.getByRole('heading', {
+    currentStage.getByRole('heading', {
       name: 'Оцените текущее состояние по шкале от 1 до 10',
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    frozenStage.getByRole('heading', { name: 'Главный инсайт квартала?', exact: true }),
-  ).toBeVisible();
+    currentStage.getByRole('heading', { name: 'Главный инсайт квартала?', exact: true }),
+  ).toHaveCount(0);
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
-  await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
-  await proj.reload();
-  await expect(proj.getByText('Ответ другого участника', { exact: true })).toBeVisible();
-  await openLiveExtra(host);
-  await host.getByRole('button', { name: 'Снять заморозку', exact: true }).click();
   await expect(proj.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
+  await expect(
+    proj.getByText('Оцените текущее состояние по шкале от 1 до 10', { exact: true }),
+  ).toBeVisible();
+  const legacySnapshot = await host.request.patch(`${roomUrl}?updateMask.fieldPaths=frozen`, {
+    headers: { Authorization: 'Bearer owner' },
+    data: {
+      fields: {
+        frozen: {
+          mapValue: {
+            fields: {
+              round: oldRound,
+              results: { arrayValue: { values: [] } },
+              capturedAt: { stringValue: new Date().toISOString() },
+            },
+          },
+        },
+      },
+    },
+  });
+  expect(legacySnapshot.ok()).toBeTruthy();
+  await expect(
+    currentStage.getByRole('heading', { name: 'Главный инсайт квартала?', exact: true }),
+  ).toHaveCount(0);
+  await proj.reload();
+  await expect(proj.getByText('Главный инсайт квартала?', { exact: true })).toHaveCount(0);
+  await expect(proj.getByText('Ответ другого участника', { exact: true })).toHaveCount(0);
+  await expect(
+    proj.getByText('Оцените текущее состояние по шкале от 1 до 10', { exact: true }),
+  ).toBeVisible();
   await p.getByRole('button', { name: '7', exact: true }).click();
   await pContext.setOffline(true);
   await expect(p.getByRole('button', { name: 'Отправить', exact: true })).toBeDisabled();
   await pContext.setOffline(false);
   await p.getByRole('button', { name: 'Отправить', exact: true }).click();
-  await expect(p.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
   await closeCollection(host);
   await openTools(host);
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
@@ -309,7 +362,11 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await p.getByRole('radio').first().check();
   await p.getByRole('button', { name: 'Отправить', exact: true }).click();
-  await expect(p.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await expect(
+    p
+      .getByRole('button', { name: 'Отправлено', exact: true })
+      .or(p.getByText('Ответ отправлен.', { exact: true })),
+  ).toBeVisible();
   await p.getByRole('radio').nth(1).check();
   await p.getByRole('button', { name: 'Обновить ответ' }).click();
   await expect(
@@ -432,9 +489,9 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   expect(nextBox.y + nextBox.height).toBeLessThan(720);
   await host.screenshot({ path: 'test-results/live-laptop.png', fullPage: true });
   await openTools(host);
-  await expect(
-    host.getByRole('button', { name: 'Заморозить проектор', exact: true }),
-  ).toBeVisible();
+  await expect(host.getByRole('button', { name: 'Заморозить проектор', exact: true })).toHaveCount(
+    0,
+  );
   const connection = host.locator('details.participant-connection');
   await expect(connection).not.toHaveAttribute('open', '');
   await connection.locator('summary').click();
@@ -613,7 +670,11 @@ test('history charts use reviewed text and closed question exports work during a
     await page.getByRole('button', { name: 'Подключиться', exact: true }).click();
     await page.getByLabel('Ваш ответ', { exact: true }).fill(answer);
     await page.getByRole('button', { name: 'Отправить', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+    await expect(
+      page
+        .getByRole('button', { name: 'Отправлено', exact: true })
+        .or(page.getByText('Ответ отправлен.', { exact: true })),
+    ).toBeVisible();
   }
   const editedCard = host
     .locator('article')
@@ -640,11 +701,18 @@ test('history charts use reviewed text and closed question exports work during a
   await host.getByRole('tab', { name: 'История' }).click();
   await host.getByRole('tab', { name: 'Показ' }).click();
   await openTools(host);
-  await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
+  if (await host.getByRole('button', { name: 'Открыть лайки', exact: true }).count())
+    await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
   await expect(
     first.getByRole('heading', { name: 'Выберите полезные идеи', exact: true }),
   ).toBeVisible();
   await expect(first.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
+  await expect(first.getByRole('button', { name: /^Нравится/ })).toHaveCount(0);
+  await expect(first.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  await second.getByRole('button', { name: 'Нравится (0)', exact: true }).click();
+  await expect(first.getByText('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
+  await second.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
+  await expect(first.getByText('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();
   await expect(
     first.getByRole('heading', { name: 'Выберите полезные идеи', exact: true }),
@@ -704,7 +772,8 @@ test('live navigation autosaves, guards invalid questions and ignores arrow keys
   await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
   await expect(stage.getByText('Сбор ответов идёт', { exact: true })).toBeVisible();
   await openTools(host);
-  await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
+  if (await host.getByRole('button', { name: 'Открыть лайки', exact: true }).count())
+    await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
   await expect(stage.getByText('Сбор ответов идёт', { exact: true })).toBeVisible();
   await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
   await host
