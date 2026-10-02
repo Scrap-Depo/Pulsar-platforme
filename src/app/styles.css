@@ -1635,9 +1635,9 @@ a {
 .slide-list > .slide-card.is-selected { border-color: var(--accent); background: var(--accent-bg); }
 .live-shell .slide-select, .live-shell .slide-select[aria-pressed="true"] { min-width: 0; display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px 10px; text-align: left; margin: 0; border: 0; background: transparent; }
 .slide-select svg { flex-shrink: 0; }
-.question-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; width: 100%; }
+.question-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; width: 100%; }
 .live-shell .question-actions button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); }
-.live-shell .question-actions button.danger { background: transparent; color: var(--danger); }
+.live-shell .question-actions button.danger { margin-left: 10px; background: transparent; color: var(--danger); }
 .live-shell .question-actions button:hover:not(:disabled) { background: rgba(255,255,255,.1); color: var(--text-strong); }
 .live-shell .question-actions button.danger:hover:not(:disabled) { color: var(--danger); background: rgba(248,113,113,.12); }
 .question-actions button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
@@ -1731,3 +1731,14 @@ a {
 }
 
 .live-shell .type-tile { padding: 10px 6px; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+
+/* Keep the current question title once, while retaining a different frozen title. */
+.projector-same-question h1, .projector-same-question h2 { display: none; }
+.launch-controls { margin-left: auto; max-width: 440px; }
+.launch-controls p { margin: 8px 0; font-size: 14px; }
+.launch-controls summary, .timer-settings summary { cursor: pointer; padding: 8px 0; }
+.live-shell .question-settings { border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 14px; }
+.question-settings legend { font-size: 16px; font-weight: 700; padding: 0 6px; }
+.join-code { font-size: 1.2rem; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) { .live-shell .question-actions button { flex-basis: 44px; width: 44px; height: 44px; min-height: 44px; } }
+@media (max-width: 800px) { .launch-controls { margin-left: 0; width: 100%; } }

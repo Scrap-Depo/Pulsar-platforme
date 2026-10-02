@@ -242,9 +242,13 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     patch({ slides: [...draft!.slides, slide], currentSlideId: slide.id });
   }
   const repeated = rounds.data.some((r) => r.slide.id === current.id);
+  const currentIsOpen = round?.slide.id === current.id && round.phase === 'open';
+  const projectorRound = room.data?.frozen?.round ?? round;
+  const sameProjectorTitle = projectorRound?.slide.title === round?.slide.title;
   const liveIndex = round ? draft.slides.findIndex((slide) => slide.id === round.slide.id) : -1;
   const nextSlide = liveIndex >= 0 ? draft.slides[liveIndex + 1] : undefined;
   function prepareNext() {
+    setNotice('');
     if (nextSlide)
       setDraft((previous) => (previous ? { ...previous, currentSlideId: nextSlide.id } : previous));
     setTab('prepare');
@@ -341,9 +345,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           <div className="button-row">
             <span>
-              Код: <strong>{m.joinCode}</strong>
+              Код:{' '}
+              <strong className="join-code" aria-label={`Код входа ${m.joinCode}`}>
+                {m.joinCode.match(/.{1,5}/g)?.join(' ')}
+              </strong>
             </span>
-            <span className={`status-badge ${status.tone}`}>{status.label}</span>
+            {view !== 'live' || !round ? (
+              <span className={`status-badge ${status.tone}`}>{status.label}</span>
+            ) : null}
           </div>
         </div>
       </section>
@@ -362,7 +371,10 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               role="tab"
               aria-selected={view === key}
               className="host-tab"
-              onClick={() => setTab(key)}
+              onClick={() => {
+                setNotice('');
+                setTab(key);
+              }}
             >
               {label}
             </button>
@@ -377,7 +389,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               <button className="primary-action" onClick={() => setTab('prepare')}>
                 Выбрать вопрос
               </button>
-              <ParticipantConnection url={joinLink} onNotice={setNotice} onError={setError} />
+              <ParticipantConnection
+                code={m.joinCode}
+                url={joinLink}
+                onNotice={setNotice}
+                onError={setError}
+              />
             </section>
           ) : (
             <div className="live-workspace">
@@ -430,15 +447,21 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                 {room.data?.frozen && (
                   <p className="notice">Проектор заморожен: показывает сохранённый снимок.</p>
                 )}
-                <LiveResults
-                  round={room.data?.frozen?.round ?? round}
-                  results={room.data?.frozen?.results ?? published.data}
-                  emptyMessage={
-                    responses.loaded && responses.data.length === 0 && !room.data?.frozen
-                      ? 'На этот вопрос ещё никто не ответил.'
-                      : 'Опубликованных ответов пока нет.'
-                  }
-                />
+                <div className={sameProjectorTitle ? 'projector-same-question' : undefined}>
+                  {!projectorRound?.visible && sameProjectorTitle ? (
+                    <p>На экране проектора только вопрос.</p>
+                  ) : (
+                    <LiveResults
+                      round={projectorRound!}
+                      results={room.data?.frozen?.results ?? published.data}
+                      emptyMessage={
+                        responses.loaded && responses.data.length === 0 && !room.data?.frozen
+                          ? 'На этот вопрос ещё никто не ответил.'
+                          : 'Опубликованных ответов пока нет.'
+                      }
+                    />
+                  )}
+                </div>
                 {responses.data.some((r) => r.moderation === 'pending') && (
                   <p>
                     На проверке: {responses.data.filter((r) => r.moderation === 'pending').length}.
@@ -479,17 +502,17 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     onSet={(seconds) => void run('timer', { seconds })}
                   />
                 )}
+                <button
+                  disabled={busy || !online}
+                  onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
+                >
+                  {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
+                </button>
+                <small>
+                  Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.
+                </small>
                 <details className="live-extra">
                   <summary>Показ и оформление результатов</summary>
-                  <button
-                    disabled={busy || !online}
-                    onClick={() => void run('freeze', { enabled: !room.data?.frozen })}
-                  >
-                    {room.data?.frozen ? 'Снять заморозку' : 'Заморозить проектор'}
-                  </button>
-                  <p>
-                    Заморозка удерживает снимок на проекторе. Сбор ответов продолжается отдельно.
-                  </p>
                   <fieldset disabled={busy || !online || dirty}>
                     <ResultAppearance
                       slide={m.slides.find((s) => s.id === round.slide.id) ?? round.slide}
@@ -502,7 +525,8 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                 <ParticipantConnection
                   key={round.id}
                   url={joinLink}
-                  collapsed
+                  code={m.joinCode}
+                  collapsed={joined > 0}
                   onNotice={setNotice}
                   onError={setError}
                 />
@@ -548,7 +572,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       disabled={i === 0}
                       onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'up') })}
                     >
-                      <ArrowUp size={16} aria-hidden="true" />
+                      <ArrowUp size={18} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -557,7 +581,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       disabled={i === draft.slides.length - 1}
                       onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'down') })}
                     >
-                      <ArrowDown size={16} aria-hidden="true" />
+                      <ArrowDown size={18} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -565,7 +589,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       title="Создать копию вопроса"
                       onClick={() => patch({ slides: duplicateSlide(draft.slides, s.id) })}
                     >
-                      <Copy size={16} aria-hidden="true" />
+                      <Copy size={18} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -587,7 +611,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                         })
                       }
                     >
-                      <Trash2 size={16} aria-hidden="true" />
+                      <Trash2 size={18} aria-hidden="true" />
                     </button>
                   </div>
                   <button
@@ -633,6 +657,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                 {round.phase === 'open' ? 'Сбор ответов продолжается.' : 'Сбор ответов завершён.'}
               </p>
             )}
+            {currentIsOpen &&
+              (dirty || JSON.stringify(current) !== JSON.stringify(round.slide)) && (
+                <p className="preparation-context">
+                  В эфире сохранённая при запуске версия; изменения редактора ещё не опубликованы.
+                </p>
+              )}
             <div className="editor-grid">
               <div className="editor-form">
                 <fieldset disabled={busy}>
@@ -686,10 +716,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               </div>
             </div>
             <p className="launch-summary">{launchSummary}</p>
-            {repeated && (
-              <p>Повторный запуск начнёт новый сбор; прежние ответы останутся в истории.</p>
-            )}
-            {round?.phase === 'open' && <p>Запуск завершит сбор ответов на текущий вопрос.</p>}
             <div className="save-bar">
               <button
                 disabled={busy || !online || !dirty}
@@ -717,17 +743,53 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   Отменить изменения
                 </button>
               )}
-              <button
-                className="primary-action launch"
-                disabled={busy || !online || dirty || !!problem}
-                onClick={open}
-              >
-                {openRequest
-                  ? 'Повторить попытку запуска'
-                  : rounds.data.some((r) => r.slide.id === current.id)
-                    ? 'Задать вопрос повторно'
-                    : 'Запустить вопрос'}
-              </button>
+              <div className="launch-controls">
+                {currentIsOpen ? (
+                  <>
+                    <button
+                      className="primary-action"
+                      disabled={busy}
+                      onClick={() => {
+                        setNotice('');
+                        setTab('live');
+                      }}
+                    >
+                      Перейти в эфир
+                    </button>
+                    <p>Этот вопрос сейчас в эфире.</p>
+                    <details>
+                      <summary>Начать новый сбор на этот вопрос</summary>
+                      <button disabled={busy || !online || dirty || !!problem} onClick={open}>
+                        {openRequest ? 'Повторить попытку запуска' : 'Задать вопрос повторно'}
+                      </button>
+                      <p>
+                        Повторный запуск завершит текущий сбор и начнёт новый. Прежние ответы
+                        останутся в истории.
+                      </p>
+                    </details>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="primary-action"
+                      disabled={busy || !online || dirty || !!problem}
+                      onClick={open}
+                    >
+                      {openRequest
+                        ? 'Повторить попытку запуска'
+                        : repeated
+                          ? 'Задать вопрос повторно'
+                          : 'Запустить вопрос'}
+                    </button>
+                    {repeated && (
+                      <p>Повторный запуск начнёт новый сбор; прежние ответы останутся в истории.</p>
+                    )}
+                    {round?.phase === 'open' && (
+                      <p>Запуск завершит сбор ответов на текущий вопрос.</p>
+                    )}
+                  </>
+                )}
+              </div>
               {problem && (
                 <p className="save-state dirty" role="status">
                   {problem}
@@ -981,18 +1043,41 @@ function ResultAppearance({
 }
 function ParticipantConnection({
   url,
+  code,
   collapsed = false,
   onNotice,
   onError,
 }: {
   url: string;
+  code: string;
   collapsed?: boolean;
   onNotice: (text: string) => void;
   onError: (text: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(!collapsed);
+  useEffect(() => {
+    if (!collapsed) setExpanded(true);
+  }, [collapsed]);
   return (
-    <details className="participant-connection" open={!collapsed}>
+    <details
+      className="participant-connection"
+      open={expanded}
+      onToggle={(e) => setExpanded(e.currentTarget.open)}
+    >
       <summary>Подключение участников</summary>
+      <p className="join-code" aria-label={`Код входа ${code}`}>
+        {code.match(/.{1,5}/g)?.join(' ')}
+      </p>
+      <button
+        onClick={() => {
+          navigator.clipboard
+            .writeText(code)
+            .then(() => onNotice('Код скопирован.'))
+            .catch(() => onError('Не удалось скопировать. Выделите код выше.'));
+        }}
+      >
+        Скопировать код
+      </button>
       <p>Участники сканируют QR-код или открывают ссылку на своём устройстве.</p>
       <div className="connection-content">
         <JoinQr url={url} />
@@ -1208,22 +1293,25 @@ function Timer({
     : null;
   return (
     <div className="timer">
-      <p className="timer-help">
-        Таймер только предупреждает: по окончании сбор останется открытым.
-      </p>
-      <label>
-        Таймер, секунд
-        <input
-          type="number"
-          min={1}
-          max={3600}
-          value={seconds}
-          onChange={(e) => setSeconds(Number(e.target.value))}
-        />
-      </label>
-      <button disabled={disabled || round.phase !== 'open'} onClick={() => onSet(seconds)}>
-        Запустить таймер
-      </button>
+      <details className="timer-settings">
+        <summary>Таймер (необязательно)</summary>
+        <p className="timer-help">
+          Таймер только предупреждает: по окончании сбор останется открытым.
+        </p>
+        <label>
+          Таймер, секунд
+          <input
+            type="number"
+            min={1}
+            max={3600}
+            value={seconds}
+            onChange={(e) => setSeconds(Number(e.target.value))}
+          />
+        </label>
+        <button disabled={disabled || round.phase !== 'open'} onClick={() => onSet(seconds)}>
+          Запустить таймер
+        </button>
+      </details>
       {remaining !== null && (
         <>
           <p role="status">
