@@ -405,7 +405,12 @@ test('draft launch gates, persisted settings, immutable old rounds and selected 
   });
   const roundRef = db.doc(`meetings/${sid}/rounds/saved`);
   const before = (await roundRef.get()).data();
-  assert.deepEqual(before.settings, { cardLimit: 1, moderation: false, immediate: false });
+  assert.deepEqual(before.settings, {
+    cardLimit: 1,
+    moderation: false,
+    immediate: false,
+    showOnPhones: false,
+  });
   await assert.rejects(
     call('host-a', 'export', { sessionId: sid, roundId: 'saved' }),
     /Завершите сбор/,
@@ -440,4 +445,22 @@ test('draft launch gates, persisted settings, immutable old rounds and selected 
   assert.equal('participantId' in exported.rounds[0].responses[0], false);
   assert.equal('requestId' in exported.rounds[0].responses[0], false);
   assert.equal((await db.doc(`meetings/${sid}/rounds/next`).get()).data().visible, true);
+});
+
+test('preview exposes only meeting title, does not join, and old 10-character codes still work', async () => {
+  const { id: sid, joinCode } = await meeting('test-preview');
+  const preview = await call('preview-person', 'previewMeeting', { code: joinCode });
+  assert.deepEqual(preview, { title: 'Проверка', code: joinCode });
+  assert.equal((await db.collection(`meetings/${sid}/members`).get()).size, 0);
+  const legacyCode = '1899AD11B7';
+  await db.doc(`joinCodes/${legacyCode}`).set({ sessionId: sid });
+  await db.doc(`meetings/${sid}`).update({ joinCode: legacyCode });
+  assert.equal(
+    (await call('preview-person', 'previewMeeting', { code: '1899 AD11B7' })).title,
+    'Проверка',
+  );
+  await call('preview-person', 'join', { code: legacyCode });
+  assert.equal((await db.collection(`meetings/${sid}/members`).get()).size, 1);
+  await call('host-a', 'finish', { sessionId: sid });
+  await assert.rejects(call('preview-person', 'previewMeeting', { code: legacyCode }), /завершена/);
 });

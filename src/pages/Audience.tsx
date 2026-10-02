@@ -8,11 +8,32 @@ import LiveResults from './LiveResults';
 import JoinQr from '../shared/ui/JoinQr';
 export default function Audience({ user, viewer }: { user: User; viewer: boolean }) {
   const [code, setCode] = useState(new URLSearchParams(location.search).get('code') ?? '');
+  const [editingCode, setEditingCode] = useState(!new URLSearchParams(location.search).get('code'));
+  const [preview, setPreview] = useState<{ code: string; title?: string; error?: string } | null>(
+    null,
+  );
   const [sid, setSid] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const online = useOnline();
   const autoJoined = useRef(false);
+  useEffect(() => {
+    if (viewer || sid || !online || !code.trim()) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void command<{ title: string }>('previewMeeting', { code })
+        .then((result) => {
+          if (active) setPreview({ code, title: result.title });
+        })
+        .catch((error) => {
+          if (active) setPreview({ code, error: message(error) });
+        });
+    }, 350);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [code, viewer, sid, online]);
   async function join() {
     if (busy) return;
     setBusy(true);
@@ -60,26 +81,52 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
           }}
         >
           <h2>{viewer ? 'Открыть проектор' : 'Подключиться к встрече'}</h2>
-          <label>
-            Код встречи
-            <input
-              autoComplete="off"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
-              maxLength={30}
-            />
-          </label>
-          <button disabled={busy || !online || !code.trim()}>
-            {busy ? 'Подключаемся…' : 'Войти'}
+          {!viewer && code && !editingCode ? (
+            <div className="ready-code">
+              <p>Код встречи</p>
+              <p className="join-code">
+                {code
+                  .toUpperCase()
+                  .replace(/\s/g, '')
+                  .match(/.{1,3}/g)
+                  ?.join(' ')}
+              </p>
+              <button type="button" className="text-action" onClick={() => setEditingCode(true)}>
+                Другой код
+              </button>
+            </div>
+          ) : (
+            <label>
+              Код встречи
+              <input
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                maxLength={30}
+              />
+            </label>
+          )}
+          {!viewer && code && (
+            <p className="meeting-preview" role="status">
+              {preview?.code === code
+                ? preview.title || preview.error
+                : 'Проверяем название встречи…'}
+            </p>
+          )}
+          <button
+            className="primary-action connect-action"
+            disabled={busy || !online || !code.trim()}
+          >
+            {busy ? 'Подключаемся…' : viewer ? 'Открыть проектор' : 'Подключиться'}
           </button>
-          <p role="alert">{error}</p>
-          <p>
-            Имя не требуется и не показывается. Ведущий видит ответы и может сопоставить ответы
-            одного участника внутри встречи. Данные хранятся до удаления встречи ведущим.
-          </p>
-          <p>
-            После обновления страницы войдите по тому же коду — ответы сохранятся в этом браузере.
-          </p>
+          {error && <p role="alert">{error}</p>}
+          {!viewer && (
+            <p className="entry-privacy">
+              Имя не нужно. Данные хранятся до удаления встречи ведущим.
+            </p>
+          )}
         </form>
       ) : (
         <Connected
@@ -111,7 +158,9 @@ function Connected({
   const path = round ? `meetings/${sessionId}/rounds/${round.id}` : null;
   const own = useLiveDoc<OwnAnswers>(!viewer && path ? `${path}/private/${uid}` : null);
   const published = useLiveList<PublicResponse>(
-    round?.visible && path ? `${path}/published` : null,
+    round?.visible && path && (viewer || round.settings.showOnPhones === true || round.likesOpen)
+      ? `${path}/published`
+      : null,
   );
   const likes = useLiveList<{ responseId: string; enabled: boolean; revision: number }>(
     !viewer && round?.likesOpen && path ? `${path}/likes` : null,
@@ -200,7 +249,7 @@ function Connected({
           own={Object.values(own.data?.answers ?? {})}
         />
       )}
-      {round.visible && (
+      {round.visible && round.settings.showOnPhones === true && !round.likesOpen && (
         <>
           <LiveResults round={round} results={published.data} />
           {published.error && <p role="alert">{published.error}</p>}
@@ -222,7 +271,7 @@ function Connected({
               </article>
             );
           })}
-          <p role="alert">{error || likes.error}</p>
+          <p role="alert">{error || likes.error || published.error}</p>
         </section>
       )}
     </>

@@ -8,6 +8,7 @@ import {
   settings,
   launchSettings,
   launchProblem,
+  joinCode,
 } from '../functions/domain.mjs';
 test('limits count Unicode characters, require explicit numeric choice', () => {
   assert.equal(responseValue({ type: 'open-answers' }, '😀'.repeat(300)), '😀'.repeat(300));
@@ -41,7 +42,12 @@ test('published response omits identity, original and history', () => {
   assert.equal('history' in result, false);
 });
 test('invalid option identifiers rejected and safe defaults applied', () => {
-  assert.deepEqual(settings(), { cardLimit: 1, moderation: true, immediate: false });
+  assert.deepEqual(settings(), {
+    cardLimit: 1,
+    moderation: true,
+    immediate: false,
+    showOnPhones: false,
+  });
   assert.throws(() =>
     validSlide({
       id: 's',
@@ -97,18 +103,25 @@ test('slide allowlist strips arbitrary fields and launch settings are safe and t
   });
   assert.equal('secret' in slide, false);
   assert.equal('options' in slide, false);
-  assert.deepEqual(slide.launch, { cardLimit: 1, moderation: false, immediate: true });
+  assert.deepEqual(slide.launch, {
+    cardLimit: 1,
+    moderation: false,
+    immediate: true,
+    showOnPhones: false,
+  });
   assert.deepEqual(settings(null), settings());
   assert.deepEqual(settings('malformed'), settings());
   assert.deepEqual(launchSettings({ type: 'open-answers' }), {
     cardLimit: 1,
     moderation: true,
     immediate: true,
+    showOnPhones: false,
   });
   assert.deepEqual(launchSettings({ type: 'multiple-choice' }, null), {
     cardLimit: 1,
     moderation: false,
     immediate: true,
+    showOnPhones: false,
   });
   assert.deepEqual(validSlide({ id: 'old', title: 'Old', type: 'open-answers' }).launch, undefined);
   for (const launch of [
@@ -125,4 +138,10 @@ test('slide allowlist strips arbitrary fields and launch settings are safe and t
       launch && typeof launch === 'object' && !Array.isArray(launch) ? false : true,
     );
   }
+});
+
+test('readable new codes omit ambiguous characters and phone results default off', () => {
+  for (let i = 0; i < 100; i++) assert.match(joinCode(), /^[2345679ACDEFGHJKLMNPQRSTUVWXYZ]{6}$/);
+  assert.equal(settings({ showOnPhones: 'true' }).showOnPhones, false);
+  assert.equal(settings({ showOnPhones: true }).showOnPhones, true);
 });

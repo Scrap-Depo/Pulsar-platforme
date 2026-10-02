@@ -13,7 +13,7 @@ export type ModuleId = SlideType;
 
 export type SessionStatus = 'draft' | 'live' | 'finished';
 
-export type LaunchSettings = { cardLimit: 1 | 3; moderation: boolean; immediate: boolean };
+export type LaunchSettings = { cardLimit: 1 | 3; moderation: boolean; immediate: boolean; showOnPhones?: boolean };
 
 type BaseSlide = {
   id: string;

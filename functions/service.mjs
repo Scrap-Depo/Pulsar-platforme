@@ -85,8 +85,24 @@ export function createService(db, onSubmitTiming = () => {}) {
       }
       fail('Не удалось подобрать код. Повторите создание.');
     }
+    if (action === 'previewMeeting') {
+      const code = text(input.code, 30, 'Код').replace(/\s/g, '').toUpperCase();
+      if (!/^[A-Z0-9]{6,10}$/.test(code)) fail('Проверьте код встречи.');
+      const resolved = required(
+        await db.doc(`joinCodes/${code}`).get(),
+        'Встреча по этому коду не найдена.',
+      );
+      const meeting = required(
+        await db.doc(`meetings/${resolved.sessionId}`).get(),
+        'Встреча не найдена.',
+      );
+      if (meeting.joinCode !== code || ['finished', 'deleting'].includes(meeting.status))
+        fail('Встреча завершена или недоступна.');
+      return { title: meeting.title, code };
+    }
     if (action === 'join') {
-      const code = text(input.code, 30, 'Код').toUpperCase();
+      const code = text(input.code, 30, 'Код').replace(/\s/g, '').toUpperCase();
+      if (!/^[A-Z0-9]{6,10}$/.test(code)) fail('Проверьте код встречи.');
       return db.runTransaction(async (tx) => {
         const resolved = required(
           await tx.get(db.doc(`joinCodes/${code}`)),

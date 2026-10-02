@@ -260,7 +260,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   function setConfig(settings: RoundSettings) {
     slideChange({ ...current, launch: settings });
   }
-  const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''}`;
+  const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''} · ${config.showOnPhones ? 'результаты на телефонах включены' : 'результаты на телефонах выключены'}`;
   async function applyAppearance(slide: SessionSlide) {
     if (dirty || !round) return;
     const ok = await run('save', {
@@ -347,7 +347,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             <span>
               Код:{' '}
               <strong className="join-code" aria-label={`Код входа ${m.joinCode}`}>
-                {m.joinCode.match(/.{1,5}/g)?.join(' ')}
+                {m.joinCode.match(m.joinCode.length === 6 ? /.{1,3}/g : /.{1,5}/g)?.join(' ')}
               </strong>
             </span>
             {view !== 'live' || !round ? (
@@ -553,6 +553,13 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         <div className="host-workspace">
           <aside className="card slide-list">
             <h2>Вопросы</h2>
+            <ParticipantConnection
+              url={joinLink}
+              code={m.joinCode}
+              collapsed
+              onNotice={setNotice}
+              onError={setError}
+            />
             {draft.slides.map((s, i) => {
               const Icon = slideIcons[s.type];
               return (
@@ -707,6 +714,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       <option value="immediate">Во время сбора</option>
                       <option value="after">После команды ведущего</option>
                     </select>
+                  </label>
+                  <label className="choice">
+                    <input
+                      type="checkbox"
+                      checked={config.showOnPhones === true}
+                      onChange={(e) => setConfig({ ...config, showOnPhones: e.target.checked })}
+                    />
+                    Показывать результаты на телефонах участников
                   </label>
                   <small>Эти настройки применятся при запуске выбранного вопроса.</small>
                 </fieldset>
@@ -920,6 +935,7 @@ function SlideEditor({
                 />
               </label>
               <button
+                className="text-action"
                 disabled={slide.options.length <= 2}
                 onClick={() => patch({ options: slide.options.filter((x) => x.id !== o.id) })}
               >
@@ -928,6 +944,7 @@ function SlideEditor({
             </div>
           ))}
           <button
+            className="secondary-action"
             disabled={slide.options.length >= 10}
             onClick={() =>
               patch({
@@ -1066,7 +1083,7 @@ function ParticipantConnection({
     >
       <summary>Подключение участников</summary>
       <p className="join-code" aria-label={`Код входа ${code}`}>
-        {code.match(/.{1,5}/g)?.join(' ')}
+        {code.match(code.length === 6 ? /.{1,3}/g : /.{1,5}/g)?.join(' ')}
       </p>
       <button
         onClick={() => {
@@ -1080,7 +1097,7 @@ function ParticipantConnection({
       </button>
       <p>Участники сканируют QR-код или открывают ссылку на своём устройстве.</p>
       <div className="connection-content">
-        <JoinQr url={url} />
+        <JoinQr url={url} downloadable />
         <div>
           <p className="join-url">{url}</p>
           <button

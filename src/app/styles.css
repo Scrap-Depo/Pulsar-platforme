@@ -1742,3 +1742,24 @@ a {
 .join-code { font-size: 1.2rem; font-weight: 700; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { .live-shell .question-actions button { flex-basis: 44px; width: 44px; height: 44px; min-height: 44px; } }
 @media (max-width: 800px) { .launch-controls { margin-left: 0; width: 100%; } }
+
+/* Preparation hierarchy and participant connection. */
+.audience-view > header, .audience-view > .entry-form { max-width: 640px; margin-left: auto; margin-right: auto; width: 100%; box-sizing: border-box; }
+.audience-view .connect-action { width: 100%; min-height: 56px; }
+.audience-view .entry-privacy { margin: 0; font-size: 14px; color: var(--text-muted); }
+.ready-code p { margin: 4px 0; }
+.meeting-preview { margin: 0; font-size: 18px; font-weight: 600; }
+.live-shell .text-action { background: transparent; border: 0; color: var(--link); padding: 8px; font-size: 14px; }
+.live-shell .secondary-action { background: transparent; border-color: var(--border-soft); font-size: 14px; }
+.live-shell .question-preview .response-form { max-width: none; margin: 0; }
+.question-preview > .button-row button:not([aria-pressed="true"]) { background: transparent; border-color: var(--border-soft); }
+.editor-form > fieldset, .editor-form > div { margin-top: 0; }
+.editor-form label { font-size: 14px; font-weight: 500; }
+.editor-form details > summary { padding: 12px; border: 1px solid var(--border-soft); border-radius: var(--radius); font-weight: 600; background: var(--surface); }
+.live-shell .meeting-end { padding: 20px; border: 1px solid var(--border-soft); border-radius: var(--radius-lg); background: var(--surface); }
+.join-qr { display: grid; gap: 8px; justify-items: start; }
+.connection-content > .join-qr { flex: 0 0 180px; min-width: 0; }
+.live-shell .join-qr button { width: 180px; font-size: 14px; padding: 10px 8px; }
+.host-workspace > section.section-stack { gap: 16px; }
+.host-workspace > section.section-stack > h2, .host-workspace > section.section-stack > p { margin: 0; }
+.question-preview .preview-caption { margin: 0; font-size: 14px; color: var(--text-muted); }

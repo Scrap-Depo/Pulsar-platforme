@@ -75,6 +75,7 @@ function SlotForm({
   );
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [confirmed, setConfirmed] = useState<string | number | undefined>(undefined);
   const [storageError, setStorageError] = useState('');
   const online = useOnline();
   const limit = round.slide.type === 'word-cloud' ? 40 : 300;
@@ -83,6 +84,16 @@ function SlotForm({
     ? typeof value === 'number'
     : !!String(value).trim() && [...String(value).trim()].length <= limit;
   const accepted = pending && saved?.requestId === pending.requestId;
+  const normalized = (answer: string | number) =>
+    typeof answer === 'string' ? answer.trim() : answer;
+  const sent =
+    confirmed !== undefined
+      ? normalized(value) === normalized(confirmed)
+      : !!saved && normalized(value) === normalized(saved.value);
+  const sentMessage =
+    round.settings.moderation && !numeric
+      ? 'Ответ отправлен. Ведущий увидит его, на экран он попадёт после одобрения.'
+      : 'Ответ отправлен. Ведущий увидит его.';
   function persist(next: string | number, attempt?: Pending, base = revision) {
     try {
       localStorage.setItem(key, JSON.stringify({ value: next, pending: attempt, revision: base }));
@@ -98,7 +109,7 @@ function SlotForm({
     persist(next);
   }
   async function submit() {
-    if (busy || !valid) return;
+    if (busy || !valid || sent || !online || round.phase !== 'open') return;
     const attempt =
       pending && pending.value === value
         ? pending
@@ -116,7 +127,8 @@ function SlotForm({
       });
       setRevision(result.revision);
       persist(value, attempt, result.revision);
-      setFeedback('Ответ принят.');
+      setConfirmed(value);
+      setFeedback('');
       // Keep the stable attempt ID until the user changes the draft. Retrying
       // after an ambiguous timeout or a reload cannot create another card.
     } catch (error) {
@@ -179,14 +191,16 @@ function SlotForm({
       </fieldset>
       {round.phase === 'open' ? (
         <div className="submit-bar">
-          <button type="button" disabled={busy || !online || !valid} onClick={submit}>
+          <button type="button" disabled={busy || !online || !valid || sent} onClick={submit}>
             {busy
               ? 'Отправляется…'
-              : saved
-                ? 'Сохранить изменение'
+              : sent
+                ? 'Отправлено'
                 : pending
                   ? 'Повторить отправку'
-                  : 'Отправить'}
+                  : saved || confirmed !== undefined
+                    ? 'Обновить ответ'
+                    : 'Отправить'}
           </button>
         </div>
       ) : (
@@ -198,10 +212,15 @@ function SlotForm({
         aria-live="polite"
         className={!feedback && accepted ? 'answer-status ok' : 'answer-status'}
       >
-        {feedback ||
-          (accepted ? 'Ответ принят.' : saved ? 'Ранее отправленный ответ сохранён.' : '')}
+        {sent
+          ? sentMessage
+          : feedback ||
+            (saved
+              ? 'Вы изменили ответ. Нажмите «Обновить ответ», чтобы отправить изменения.'
+              : '')}
       </p>
-      {saved && (
+      {sent && saved?.displayValue && <p>Редакция ведущего: {saved.displayValue}</p>}
+      {saved && !sent && (
         <div className="saved-answer">
           <small>Сохранено:</small>
           <p>

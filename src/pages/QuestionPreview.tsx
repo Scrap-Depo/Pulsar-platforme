@@ -43,6 +43,11 @@ export default function QuestionPreview({
       aria-label="Предпросмотр выбранного вопроса"
     >
       <h3>Предпросмотр</h3>
+      <p className="preview-caption">
+        {screen === 'participant'
+          ? 'Так увидит вопрос участник. Это пример, ответы не отправляются.'
+          : 'Так будет выглядеть экран проектора.'}
+      </p>
       <div className="button-row" role="group" aria-label="Экран предпросмотра">
         <button
           type="button"

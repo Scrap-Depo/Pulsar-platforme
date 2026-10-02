@@ -6,6 +6,7 @@ export function questionLaunchSettings(slide: SessionSlide): LaunchSettings {
     cardLimit: slide.type === 'open-answers' && input?.cardLimit === 3 ? 3 : 1,
     moderation: ['open-answers', 'word-cloud'].includes(slide.type) && input?.moderation !== false,
     immediate: input?.immediate !== false,
+    showOnPhones: input?.showOnPhones === true,
   };
 }
 

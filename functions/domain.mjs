@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
 
 export const TYPES = ['multiple-choice', 'pulse', 'open-answers', 'word-cloud'];
 export function fail(message) {
@@ -23,6 +23,7 @@ export function settings(input = {}) {
     cardLimit: source.cardLimit === 3 ? 3 : 1,
     moderation: source.moderation !== false,
     immediate: source.immediate === true,
+    showOnPhones: source.showOnPhones === true,
   };
 }
 export function launchSettings(slide, input = slide.launch) {
@@ -109,7 +110,8 @@ export function responseId(roundId, uid, slot) {
   return createHash('sha256').update(`${roundId}:${uid}:${slot}`).digest('hex');
 }
 export function joinCode() {
-  return randomBytes(5).toString('hex').toUpperCase();
+  const alphabet = '2345679ACDEFGHJKLMNPQRSTUVWXYZ';
+  return Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join('');
 }
 export function publicResponse(response) {
   return {
