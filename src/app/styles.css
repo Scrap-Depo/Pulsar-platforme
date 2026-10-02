@@ -1541,6 +1541,10 @@ a {
 .slide-list > div > button { width: 100%; text-align: left; margin-bottom: 8px; }
 .meeting-list, .entry-form { display: grid; gap: 14px; }
 .entry-form { max-width: 640px; margin: 24px auto; }
+.password-field { position: relative; }
+.live-shell .password-field input { padding-right: 56px; }
+.live-shell .password-toggle { position: absolute; top: 0; right: 0; bottom: 0; width: 48px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
+.live-shell .password-toggle:focus-visible { outline: 2px solid #67e8f9; outline-offset: -3px; }
 .meeting-list { margin-top: 24px; }
 .audience-view { max-width: 780px; }
 .pulse-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }

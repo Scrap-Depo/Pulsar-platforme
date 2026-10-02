@@ -1,7 +1,11 @@
 {
+  "buildCommand": "VITE_API_TRANSPORT=vercel npm run build",
+  "functions": {
+    "api/pulsar.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     {
-      "source": "/((?!.*\\..*).*)",
+      "source": "/((?!api(?:/|$))(?!.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

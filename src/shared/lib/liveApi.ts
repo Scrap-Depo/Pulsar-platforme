@@ -1,11 +1,39 @@
 import { httpsCallable } from 'firebase/functions';
-import { api } from './firebase';
+import { api, auth } from './firebase';
 export async function command<T = Record<string, unknown>>(
   action: string,
   data: Record<string, unknown> = {},
 ): Promise<T> {
   if (!navigator.onLine)
     throw new Error('Нет соединения. Данные не отправлены; повторите после восстановления связи.');
+  if (import.meta.env.VITE_API_TRANSPORT === 'vercel') {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Войдите в приложение.');
+    const token = await user.getIdToken();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch('/api/pulsar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...data, action }),
+        signal: controller.signal,
+      });
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        throw new Error('Сервер встреч недоступен. Проверьте публикацию API на Vercel.');
+      }
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || 'Не удалось выполнить действие.');
+      return result.data as T;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Подтверждение не получено. Повторите отправку: сохранённый ответ не будет продублирован.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
   const result = await httpsCallable<Record<string, unknown>, T>(api, 'pulsar', { timeout: 30000 })(
     { ...data, action },
   );
