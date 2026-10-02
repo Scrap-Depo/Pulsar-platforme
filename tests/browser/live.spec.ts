@@ -1,4 +1,34 @@
-import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { test, expect, type Page } from '@playwright/test';
+
+// Examples are test fixtures, not content silently supplied to a new meeting.
+async function prepareQuestionFixture(host: Page) {
+  await expect(host.locator('.slide-card')).toHaveCount(1);
+  const question = host.getByRole('textbox', { name: 'Вопрос', exact: true });
+  await expect(question).toHaveValue('');
+  await question.fill('Какой ваш главный приоритет на этот год?');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Запуск нового продукта');
+  await host.getByLabel('Вариант 2', { exact: true }).fill('Оптимизация расходов');
+  await host.getByRole('button', { name: 'Добавить вариант', exact: true }).click();
+  await host.getByLabel('Вариант 3', { exact: true }).fill('Найм новых сотрудников');
+  await host.getByRole('button', { name: 'Добавить вариант', exact: true }).click();
+  await host.getByLabel('Вариант 4', { exact: true }).fill('Выход на новые рынки');
+  for (const [type, title] of [
+    ['Открытые ответы', 'Главный инсайт квартала?'],
+    ['Шкала', 'Оцените текущее состояние по шкале от 1 до 10'],
+    ['Облако слов', 'Введите слово или короткую ассоциацию'],
+  ]) {
+    await host.getByRole('button', { name: type, exact: true }).click();
+    await question.fill(title);
+  }
+  await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
+  await host.getByRole('button', { name: '1. Какой ваш главный приоритет на этот год?', exact: true }).click();
+}
+
+async function saveQuestion(host: Page) {
+  const save = host.getByRole('button', { name: 'Сохранить изменения', exact: true });
+  if (await save.isEnabled()) await save.click();
+}
 
 test('question toolbar preserves edits, order and the saved meeting name', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -13,6 +43,7 @@ test('question toolbar preserves edits, order and the saved meeting name', async
     return `Встреча ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date)} ${date.getFullYear()}`;
   });
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await prepareQuestionFixture(host);
   await expect(host.getByLabel('Название встречи', { exact: true })).toHaveValue(today);
   const cards = host.locator('.slide-card');
   const question = host.getByRole('textbox', { name: 'Вопрос', exact: true });
@@ -69,6 +100,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await host.getByLabel('Пароль', { exact: true }).fill('test-password-123');
   await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await prepareQuestionFixture(host);
   await expect(host.getByText('Код:', { exact: false })).toBeVisible();
   const preview = host.getByRole('region', { name: 'Предпросмотр выбранного вопроса' });
   await expect(preview).toBeVisible();
@@ -104,6 +136,7 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   }
   await host.getByRole('button', { name: '2. Главный инсайт квартала?' }).click();
   await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await saveQuestion(host);
   await host
     .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
     .click();
@@ -141,6 +174,8 @@ test('host, two mobile participants and independent frozen projector', async ({ 
   await host
     .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10' })
     .click();
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await saveQuestion(host);
   await host
     .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
     .click();
@@ -194,6 +229,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByLabel('Пароль', { exact: true }).fill(password);
   await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await prepareQuestionFixture(host);
   await expect(host.getByRole('link', { name: 'Вход участника' })).toBeVisible();
   const url = host.url();
   await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Какой вариант выбрать?');
@@ -202,6 +238,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await expect(host.getByText('Есть несохранённые изменения.', { exact: false })).toHaveCount(0);
   await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await saveQuestion(host);
   await host
     .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
     .click();
@@ -233,6 +270,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await host.getByRole('button', { name: '4. Введите слово или короткую ассоциацию' }).click();
   await host.getByLabel('Когда показывать результаты').selectOption('immediate');
+  await saveQuestion(host);
   await host
     .getByRole('button', { name: /^(Запустить вопрос|Задать вопрос повторно)$/, exact: true })
     .click();
@@ -281,6 +319,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await host.getByLabel('Пароль', { exact: true }).fill('test-password-789');
   await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await prepareQuestionFixture(host);
   await expect(host.getByRole('heading', { name: 'Вопросы', exact: true })).toBeVisible();
   await expect(host.getByLabel('Карточек на участника')).toHaveCount(0);
   await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toHaveCount(0);
@@ -308,6 +347,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await expect(host.getByText('Есть несохранённые изменения. Сохраните перед запуском.', { exact: true })).toBeVisible();
   await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
   await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await saveQuestion(host);
   await host.screenshot({ path: 'test-results/preparation-laptop.png', fullPage: true });
   await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
   await expect(host.getByText('Вопрос запущен. Участники могут отвечать.')).toBeVisible();
@@ -353,4 +393,121 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await host.getByRole('tab', { name: 'История' }).click();
   await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(3);
   await context.close();
+});
+
+
+test('blank drafts save safely and launch settings belong to each question', async ({ browser }) => {
+  const context = await browser.newContext();
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`draft-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-password-draft');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  const title = host.getByRole('textbox', { name: 'Вопрос', exact: true });
+  const launch = host.getByRole('button', { name: 'Запустить вопрос', exact: true });
+  await expect(host.locator('.slide-card')).toHaveCount(1);
+  await expect(title).toHaveValue('');
+  await expect(launch).toBeDisabled();
+  await host.getByLabel('Название встречи', { exact: true }).fill('Сохранённый пустой черновик');
+  await saveQuestion(host);
+  await host.reload();
+  await expect(host.getByLabel('Название встречи', { exact: true })).toHaveValue('Сохранённый пустой черновик');
+  await expect(title).toHaveValue('');
+  await expect(launch).toBeDisabled();
+  await title.fill('Выберите направление');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Рост');
+  await host.getByLabel('Вариант 2', { exact: true }).fill(' рост ');
+  await saveQuestion(host);
+  await expect(launch).toBeDisabled();
+  await host.getByLabel('Вариант 2', { exact: true }).fill('Поддержка');
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
+  await saveQuestion(host);
+  await expect(launch).toBeEnabled();
+  await host.getByRole('button', { name: 'Открытые ответы', exact: true }).click();
+  await title.fill('Что поможет команде?');
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).toBeChecked();
+  await expect(host.getByLabel('Когда показывать результаты')).toHaveValue('immediate');
+  await host.getByLabel('Карточек на участника').selectOption('3');
+  await host.getByLabel('Одобрять свободный текст перед публикацией').uncheck();
+  await saveQuestion(host);
+  await host.getByRole('button', { name: '1. Выберите направление', exact: true }).click();
+  await expect(host.getByLabel('Когда показывать результаты')).toHaveValue('after');
+  await host.reload();
+  await host.getByRole('button', { name: '1. Выберите направление', exact: true }).click();
+  await expect(host.getByLabel('Когда показывать результаты')).toHaveValue('after');
+  await host.getByRole('button', { name: '2. Что поможет команде?', exact: true }).click();
+  await expect(host.getByLabel('Карточек на участника')).toHaveValue('3');
+  await expect(host.getByLabel('Одобрять свободный текст перед публикацией')).not.toBeChecked();
+  await expect(host.getByLabel('Когда показывать результаты')).toHaveValue('immediate');
+  await title.fill('');
+  await saveQuestion(host);
+  await host.reload();
+  await expect(title).toHaveValue('');
+  await expect(host.getByRole('button', { name: '2. Без названия', exact: true })).toBeVisible();
+  await expect(launch).toBeDisabled();
+  await context.close();
+});
+
+test('history charts use reviewed text and closed question exports work during a live meeting', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const host = await hostContext.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`history-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-password-history');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await host.getByRole('button', { name: 'Открытые ответы', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Что обсудим?');
+  await saveQuestion(host);
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
+  const firstContext = await browser.newContext();
+  const secondContext = await browser.newContext();
+  const first = await firstContext.newPage();
+  const second = await secondContext.newPage();
+  for (const [page, answer] of [[first, 'Исходная формулировка'], [second, 'Скрытый ответ']] as const) {
+    await page.goto(link);
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
+    await page.getByLabel('Ваш ответ', { exact: true }).fill(answer);
+    await page.getByRole('button', { name: 'Отправить', exact: true }).click();
+    await expect(page.getByText('Ответ принят.', { exact: true })).toBeVisible();
+  }
+  const editedCard = host.locator('article').filter({ has: host.getByText('Исходная формулировка', { exact: true }) });
+  await editedCard.getByRole('button', { name: 'Редактировать с пометкой', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Редакция ведущего', exact: true }).fill('Проверенная формулировка');
+  await host.getByRole('button', { name: 'Сохранить редакцию', exact: true }).click();
+  const hiddenCard = host.locator('article').filter({ has: host.getByText('Скрытый ответ', { exact: true }) });
+  await hiddenCard.getByRole('button', { name: 'Одобрить', exact: true }).click();
+  await hiddenCard.getByRole('button', { name: 'Скрыть', exact: true }).click();
+  await host.getByRole('tab', { name: 'История' }).click();
+  const history = host.getByLabel('История запусков вопросов');
+  await expect(history.locator('option')).toHaveCount(2);
+  await history.selectOption({ index: 1 });
+  await expect(host.getByRole('button', { name: 'Скачать ответы вопроса CSV', exact: true })).toBeDisabled();
+  await host.getByRole('tab', { name: 'Эфир' }).click();
+  await host.getByRole('button', { name: 'Завершить сбор ответов', exact: true }).click();
+  await host.getByRole('tab', { name: 'История' }).click();
+  const chart = host.getByRole('region', { name: 'Итоги выбранного вопроса', exact: true });
+  await expect(chart.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
+  await expect(chart.getByText('Исходная формулировка', { exact: true })).toHaveCount(0);
+  await expect(chart.getByText('Скрытый ответ', { exact: true })).toHaveCount(0);
+  await expect(host.getByText('Одобрено: 1. Скрыто: 1. На проверке: 0.', { exact: true })).toBeVisible();
+  await host.getByText('Все ответы (видны только ведущему)', { exact: true }).click();
+  await expect(host.getByText('Скрытый ответ — скрыто', { exact: false })).toBeVisible();
+  const download = host.waitForEvent('download');
+  await host.getByRole('button', { name: 'Скачать ответы вопроса CSV', exact: true }).click();
+  const exported = await download;
+  expect(exported.suggestedFilename()).toMatch(/pulsar-.*\.csv/);
+  const csv = await readFile((await exported.path())!, 'utf8');
+  expect(csv).toContain('Проверенная формулировка');
+  expect(csv).toContain('Исходная формулировка');
+  expect(csv).toContain('Скрытый ответ');
+  await host.screenshot({ path: '/private/tmp/pulsar-history-desktop.png', fullPage: true });
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await host.screenshot({ path: '/private/tmp/pulsar-history-mobile.png', fullPage: true });
+  await Promise.all([hostContext.close(), firstContext.close(), secondContext.close()]);
 });

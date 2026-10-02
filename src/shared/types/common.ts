@@ -13,10 +13,13 @@ export type ModuleId = SlideType;
 
 export type SessionStatus = 'draft' | 'live' | 'finished';
 
+export type LaunchSettings = { cardLimit: 1 | 3; moderation: boolean; immediate: boolean };
+
 type BaseSlide = {
   id: string;
   title: string;
   type: SlideType;
+  launch?: LaunchSettings;
 };
 
 export type MultipleChoiceVisualization = 'bar' | 'pie' | 'donut';

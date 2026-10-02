@@ -103,8 +103,8 @@ export function createSlide(type: SlideType, _order: number): SessionSlide {
       title,
       type,
       options: [
-        { id: Date.now(), text: 'Вариант 1', votes: 0, color: 'linear-gradient(135deg, #479ddb, #3363c1)' },
-        { id: Date.now() + 1, text: 'Вариант 2', votes: 0, color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)' },
+        { id: Date.now(), text: '', votes: 0, color: 'linear-gradient(135deg, #479ddb, #3363c1)' },
+        { id: Date.now() + 1, text: '', votes: 0, color: 'linear-gradient(135deg, #b7bfe0, #6f72c4)' },
       ],
       visualization: 'bar',
       resultDisplay: 'both',

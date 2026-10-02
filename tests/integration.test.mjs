@@ -80,7 +80,12 @@ test('isolation, auth, private collection, idempotent submission and closed gate
   await call('viewer', 'join', { code: joinCode, viewer: true });
   await call('a', 'join', { code: joinCode });
   assert.equal((await db.collection(`meetings/${sid}/members`).get()).size, 2);
-  await call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'r1' });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'choice',
+    requestId: 'r1',
+    settings: { immediate: false },
+  });
   await Promise.all([send('a', sid, 'r1', 1), send('a', sid, 'r1', 1)]);
   await assert.rejects(send('a', sid, 'r1', 2)); // A reused request ID cannot acknowledge different content.
   await send('b', sid, 'r1', 2);
@@ -328,4 +333,111 @@ test('private receipt isolates participants and atomically preserves cards, edit
   assert.deepEqual(await read(), updated);
   await call('host-a', 'delete', { sessionId: sid });
   assert.equal((await db.doc(path).get()).exists, false);
+});
+
+test('draft launch gates, persisted settings, immutable old rounds and selected closed export', async () => {
+  const initial = [
+    {
+      ...slides[0],
+      title: '',
+      options: [
+        { id: 1, text: '' },
+        { id: 2, text: '' },
+      ],
+      launch: { cardLimit: 3, moderation: true, immediate: false },
+    },
+  ];
+  const { id: sid, joinCode } = await call('host-a', 'create', {
+    requestId: `test-launch-${runId}`,
+    title: 'Черновик',
+    slides: initial,
+  });
+  await assert.rejects(
+    call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'blank' }),
+    /текст вопроса/,
+  );
+  await call('host-a', 'save', {
+    sessionId: sid,
+    version: 1,
+    title: 'Черновик',
+    currentSlideId: 'choice',
+    slides: [{ ...initial[0], title: 'Выбор' }],
+  });
+  await assert.rejects(
+    call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'blank-options' }),
+    /все варианты/,
+  );
+  await call('host-a', 'save', {
+    sessionId: sid,
+    version: 2,
+    title: 'Черновик',
+    currentSlideId: 'choice',
+    slides: [
+      {
+        ...initial[0],
+        title: 'Выбор',
+        options: [
+          { id: 1, text: ' Новый  продукт ' },
+          { id: 2, text: 'новый продукт' },
+        ],
+      },
+    ],
+  });
+  await assert.rejects(
+    call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'duplicate' }),
+    /отличаться/,
+  );
+  const complete = { ...slides[0], launch: { cardLimit: 3, moderation: true, immediate: false } };
+  await call('host-a', 'save', {
+    sessionId: sid,
+    version: 3,
+    title: 'Черновик',
+    currentSlideId: 'choice',
+    slides: [complete],
+  });
+  await call('host-a', 'join', { code: joinCode });
+  await call('person-export', 'join', { code: joinCode });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'choice',
+    requestId: 'saved',
+    settings: { cardLimit: 3, moderation: true, immediate: true },
+  });
+  const roundRef = db.doc(`meetings/${sid}/rounds/saved`);
+  const before = (await roundRef.get()).data();
+  assert.deepEqual(before.settings, { cardLimit: 1, moderation: false, immediate: false });
+  await assert.rejects(
+    call('host-a', 'export', { sessionId: sid, roundId: 'saved' }),
+    /Завершите сбор/,
+  );
+  await send('person-export', sid, 'saved', 1);
+  await call('host-a', 'save', {
+    sessionId: sid,
+    version: 4,
+    title: 'Черновик',
+    currentSlideId: 'choice',
+    slides: [
+      {
+        ...complete,
+        title: 'Изменённый вопрос',
+        launch: { cardLimit: 1, moderation: false, immediate: true },
+      },
+    ],
+  });
+  assert.deepEqual((await roundRef.get()).data(), before);
+  await call('host-a', 'close', { sessionId: sid });
+  await call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'next' });
+  await assert.rejects(
+    call('host-b', 'export', { sessionId: sid, roundId: 'saved' }),
+    /Нет доступа/,
+  );
+  await assert.rejects(call('host-a', 'export', { sessionId: sid }), /Завершите встречу/);
+  const exported = await call('host-a', 'export', { sessionId: sid, roundId: 'saved' });
+  assert.equal(exported.rounds.length, 1);
+  assert.equal(exported.rounds[0].id, 'saved');
+  assert.equal(exported.rounds[0].slide.title, 'Выбор');
+  assert.equal(exported.rounds[0].answeredCount, 1);
+  assert.equal('participantId' in exported.rounds[0].responses[0], false);
+  assert.equal('requestId' in exported.rounds[0].responses[0], false);
+  assert.equal((await db.doc(`meetings/${sid}/rounds/next`).get()).data().visible, true);
 });

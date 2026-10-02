@@ -4,7 +4,8 @@ import {
   responseId,
   publicResponse,
   ownResponse,
-  settings,
+  launchSettings,
+  launchProblem,
   joinCode,
   text,
   fail,
@@ -154,11 +155,21 @@ export function createService(db, onSubmitTiming = () => {}) {
     if (action === 'export') {
       const meeting = required(await mref.get(), 'Встреча не найдена.');
       owner(meeting, uid);
-      if (meeting.status !== 'finished')
-        fail('Завершите встречу перед выгрузкой, чтобы зафиксировать результаты.');
-      const rounds = await mref.collection('rounds').get();
+      let roundDocs;
+      if (input.roundId != null) {
+        const rid = text(input.roundId, 100, 'ID вопроса');
+        if (!/^[a-zA-Z0-9-]+$/.test(rid)) fail('Некорректный ID вопроса.');
+        const selected = await mref.collection('rounds').doc(rid).get();
+        const round = required(selected, 'Запуск вопроса не найден.');
+        if (round.phase !== 'closed') fail('Завершите сбор ответов перед выгрузкой вопроса.');
+        roundDocs = [selected];
+      } else {
+        if (meeting.status !== 'finished')
+          fail('Завершите встречу перед выгрузкой, чтобы зафиксировать результаты.');
+        roundDocs = (await mref.collection('rounds').get()).docs;
+      }
       const exported = await Promise.all(
-        rounds.docs.map(async (snap) => {
+        roundDocs.map(async (snap) => {
           const responses = await snap.ref.collection('responses').get();
           return {
             ...snap.data(),
@@ -300,7 +311,9 @@ export function createService(db, onSubmitTiming = () => {}) {
         const previous = previousRef ? await tx.get(previousRef) : null;
         const slide = meeting.slides.find((s) => s.id === input.slideId);
         if (!slide) fail('Сначала сохраните слайд.');
-        const config = settings(input.settings);
+        const problem = launchProblem(slide);
+        if (problem) fail(problem);
+        const config = launchSettings(slide, slide.launch ?? input.settings);
         const round = {
           id: rid,
           slide,

@@ -15,14 +15,25 @@ import { SessionSlide, SlideType } from '../shared/types/common';
 import {
   createSlide,
   createTemplateSlide,
-  defaultSession,
+  slideTitlePlaceholderMap,
   duplicateSlide,
   moveSlide,
   slideTemplates,
 } from '../shared/lib/session';
 import LiveResults from './LiveResults';
 import QuestionPreview from './QuestionPreview';
-import { ArrowDown, ArrowUp, BarChart3, Cloud, Copy, Gauge, MessageSquare, Trash2 } from 'lucide-react';
+import RoundHistory from './RoundHistory';
+import { questionLaunchSettings, launchProblem } from '../shared/lib/launch';
+import {
+  ArrowDown,
+  ArrowUp,
+  BarChart3,
+  Cloud,
+  Copy,
+  Gauge,
+  MessageSquare,
+  Trash2,
+} from 'lucide-react';
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
 
@@ -58,7 +69,7 @@ export default function MeetingAdmin({ user }: { user: User }) {
       const next = await command<{ id: string }>('create', {
         requestId: createRequest.current,
         title: `Встреча ${today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} ${today.getFullYear()}`,
-        slides: defaultSession.slides,
+        slides: [{ ...createSlide('multiple-choice', 0), id: `slide-${crypto.randomUUID()}` }],
       });
       createRequest.current = crypto.randomUUID();
       select(next.id);
@@ -133,11 +144,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const busyRef = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [config, setConfig] = useState<RoundSettings>({
-    cardLimit: 1,
-    moderation: true,
-    immediate: true,
-  });
   const [deleteText, setDeleteText] = useState('');
   const [historyId, setHistoryId] = useState('');
   const [openRequest, setOpenRequest] = useState<string | null>(null);
@@ -233,22 +239,23 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       ? createTemplateSlide(template, draft!.slides.length)
       : createSlide(type, draft!.slides.length);
     slide.id = `slide-${crypto.randomUUID()}`;
-    if (!slide.title) slide.title = 'Новый вопрос';
     patch({ slides: [...draft!.slides, slide], currentSlideId: slide.id });
   }
   const repeated = rounds.data.some((r) => r.slide.id === current.id);
   const liveIndex = round ? draft.slides.findIndex((slide) => slide.id === round.slide.id) : -1;
   const nextSlide = liveIndex >= 0 ? draft.slides[liveIndex + 1] : undefined;
   function prepareNext() {
-    if (nextSlide) setDraft((previous) => previous ? { ...previous, currentSlideId: nextSlide.id } : previous);
+    if (nextSlide)
+      setDraft((previous) => (previous ? { ...previous, currentSlideId: nextSlide.id } : previous));
     setTab('prepare');
   }
   const isText = ['open-answers', 'word-cloud'].includes(current.type);
-  const launchSettings = {
-    ...config,
-    cardLimit: current.type === 'open-answers' ? config.cardLimit : 1,
-    moderation: isText && config.moderation,
-  } as RoundSettings;
+  const config = questionLaunchSettings(current);
+  const launchSettings = config;
+  const problem = launchProblem(current);
+  function setConfig(settings: RoundSettings) {
+    slideChange({ ...current, launch: settings });
+  }
   const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''}`;
   async function applyAppearance(slide: SessionSlide) {
     if (dirty || !round) return;
@@ -261,6 +268,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     if (ok) await run('appearance', { roundId: round.id });
   }
   function open() {
+    if (busy || !online || dirty || problem) return;
     if (
       repeated &&
       !openRequest &&
@@ -296,7 +304,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       {dirty && view !== 'prepare' && !finished && (
         <div className="notice draft-reminder" role="status">
           <p>В подготовке есть несохранённые изменения. Текущий вопрос у участников не изменён.</p>
-          <button type="button" onClick={() => setTab('prepare')}>Вернуться к изменениям</button>
+          <button type="button" onClick={() => setTab('prepare')}>
+            Вернуться к изменениям
+          </button>
         </div>
       )}
       {!online && (
@@ -450,10 +460,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     </button>
                   )}
                   {round.phase === 'closed' && (
-                    <button
-                      className={round.visible ? 'primary-action' : ''}
-                      onClick={prepareNext}
-                    >
+                    <button className={round.visible ? 'primary-action' : ''} onClick={prepareNext}>
                       {nextSlide ? 'Следующий вопрос' : 'Выбрать вопрос'}
                     </button>
                   )}
@@ -525,8 +532,15 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             {draft.slides.map((s, i) => {
               const Icon = slideIcons[s.type];
               return (
-                <div className={`slide-card${s.id === current.id ? ' is-selected' : ''}`} key={s.id}>
-                  <div className="question-actions" role="group" aria-label={`Действия с вопросом ${i + 1}`}>
+                <div
+                  className={`slide-card${s.id === current.id ? ' is-selected' : ''}`}
+                  key={s.id}
+                >
+                  <div
+                    className="question-actions"
+                    role="group"
+                    aria-label={`Действия с вопросом ${i + 1}`}
+                  >
                     <button
                       type="button"
                       aria-label={`Поднять вопрос ${i + 1}`}
@@ -557,14 +571,19 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       type="button"
                       className="danger"
                       aria-label={`Удалить вопрос ${i + 1}`}
-                      title={draft.slides.length === 1 ? 'Нельзя удалить единственный вопрос' : 'Удалить вопрос'}
+                      title={
+                        draft.slides.length === 1
+                          ? 'Нельзя удалить единственный вопрос'
+                          : 'Удалить вопрос'
+                      }
                       disabled={draft.slides.length === 1}
                       onClick={() =>
                         patch({
                           slides: draft.slides.filter((x) => x.id !== s.id),
-                          currentSlideId: draft.currentSlideId === s.id
-                            ? draft.slides[i + 1]?.id ?? draft.slides[i - 1]!.id
-                            : draft.currentSlideId,
+                          currentSlideId:
+                            draft.currentSlideId === s.id
+                              ? (draft.slides[i + 1]?.id ?? draft.slides[i - 1]!.id)
+                              : draft.currentSlideId,
                         })
                       }
                     >
@@ -578,7 +597,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                   >
                     <Icon size={18} aria-hidden="true" />
                     <span>
-                      {i + 1}. {s.title || 'Новый вопрос'}
+                      {i + 1}. {s.title || 'Без названия'}
                     </span>
                   </button>
                 </div>
@@ -700,7 +719,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               )}
               <button
                 className="primary-action launch"
-                disabled={busy || !online || dirty}
+                disabled={busy || !online || dirty || !!problem}
                 onClick={open}
               >
                 {openRequest
@@ -709,6 +728,11 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     ? 'Задать вопрос повторно'
                     : 'Запустить вопрос'}
               </button>
+              {problem && (
+                <p className="save-state dirty" role="status">
+                  {problem}
+                </p>
+              )}
               {dirty ? (
                 <p className="save-state dirty">
                   Есть несохранённые изменения. Сохраните перед запуском.
@@ -761,7 +785,10 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           {historyId && (
             <RoundHistory sessionId={id} round={rounds.data.find((r) => r.id === historyId)!} />
           )}
-          <p>Данные хранятся до удаления ведущим. Выгрузка доступна после завершения встречи.</p>
+          <p>
+            Данные хранятся до удаления ведущим. Результаты закрытого вопроса можно скачать выше;
+            полную встречу — после завершения.
+          </p>
           <button
             disabled={busy || m.status !== 'finished' || !online}
             onClick={() => void run('export')}
@@ -806,6 +833,7 @@ function SlideEditor({
         <textarea
           rows={3}
           maxLength={300}
+          placeholder={slideTitlePlaceholderMap[slide.type]}
           value={slide.title}
           onChange={(e) => patch({ title: e.target.value })}
         />
@@ -818,6 +846,7 @@ function SlideEditor({
                 Вариант {i + 1}
                 <input
                   maxLength={120}
+                  placeholder={`Вариант ${i + 1}`}
                   value={o.text}
                   onChange={(e) =>
                     patch({
@@ -842,7 +871,7 @@ function SlideEditor({
               patch({
                 options: [
                   ...slide.options,
-                  { id: Date.now(), text: 'Новый вариант', votes: 0, color: '#479ddb' },
+                  { id: Date.now(), text: '', votes: 0, color: '#479ddb' },
                 ],
               })
             }
@@ -1207,33 +1236,6 @@ function Timer({
           </button>
         </>
       )}
-    </div>
-  );
-}
-function RoundHistory({ sessionId, round }: { sessionId: string; round?: Round }) {
-  const responses = useLiveList<Response>(
-    round ? `meetings/${sessionId}/rounds/${round.id}/responses` : null,
-  );
-  if (!round) return null;
-  return (
-    <div>
-      <h3>{round.slide.title}</h3>
-      <p>
-        Ответили: {new Set(responses.data.map((r) => r.participantId)).size}. Ответов:{' '}
-        {responses.data.length}.
-      </p>
-      <p role="alert">{responses.error}</p>
-      <details>
-        <summary>Все ответы (видны только ведущему)</summary>
-        {responses.data.map((r) => (
-          <p key={r.id}>
-            {round.slide.type === 'multiple-choice'
-              ? round.slide.options.find((o) => o.id === r.value)?.text
-              : r.value}{' '}
-            {r.displayValue ? `— редакция: ${r.displayValue}` : ''}
-          </p>
-        ))}
-      </details>
     </div>
   );
 }

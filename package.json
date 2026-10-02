@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc --project tsconfig.app.json --noEmit --incremental false && vite build",
     "preview": "vite preview",
-    "test": "node --test tests/domain.test.mjs",
+    "test": "node --test tests/domain.test.mjs tests/result-export.test.mjs",
     "test:integration": "node --test tests/integration.test.mjs",
     "test:browser": "playwright test",
     "dev:emulators": "firebase emulators:start --project demo-pulsar",

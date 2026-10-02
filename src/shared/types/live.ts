@@ -1,5 +1,5 @@
-import { SessionSlide } from './common';
-export type RoundSettings = { cardLimit: 1 | 3; moderation: boolean; immediate: boolean };
+import { LaunchSettings, SessionSlide } from './common';
+export type RoundSettings = LaunchSettings;
 export type Round = {
   id: string;
   slide: SessionSlide;
