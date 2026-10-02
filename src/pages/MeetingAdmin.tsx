@@ -22,7 +22,7 @@ import {
 } from '../shared/lib/session';
 import LiveResults from './LiveResults';
 import QuestionPreview from './QuestionPreview';
-import { BarChart3, Cloud, Gauge, MessageSquare } from 'lucide-react';
+import { ArrowDown, ArrowUp, BarChart3, Cloud, Copy, Gauge, MessageSquare, Trash2 } from 'lucide-react';
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
 
@@ -54,9 +54,10 @@ export default function MeetingAdmin({ user }: { user: User }) {
     setBusy(true);
     setError('');
     try {
+      const today = new Date();
       const next = await command<{ id: string }>('create', {
         requestId: createRequest.current,
-        title: 'Новая встреча',
+        title: `Встреча ${today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} ${today.getFullYear()}`,
         slides: defaultSession.slides,
       });
       createRequest.current = crypto.randomUUID();
@@ -513,6 +514,51 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               const Icon = slideIcons[s.type];
               return (
                 <div className="slide-card" key={s.id}>
+                  <div className="question-actions" role="group" aria-label={`Действия с вопросом ${i + 1}`}>
+                    <button
+                      type="button"
+                      aria-label={`Поднять вопрос ${i + 1}`}
+                      title="Поднять вопрос"
+                      disabled={i === 0}
+                      onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'up') })}
+                    >
+                      <ArrowUp size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Опустить вопрос ${i + 1}`}
+                      title="Опустить вопрос"
+                      disabled={i === draft.slides.length - 1}
+                      onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'down') })}
+                    >
+                      <ArrowDown size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Создать копию вопроса ${i + 1}`}
+                      title="Создать копию вопроса"
+                      onClick={() => patch({ slides: duplicateSlide(draft.slides, s.id) })}
+                    >
+                      <Copy size={18} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      aria-label={`Удалить вопрос ${i + 1}`}
+                      title={draft.slides.length === 1 ? 'Нельзя удалить единственный вопрос' : 'Удалить вопрос'}
+                      disabled={draft.slides.length === 1}
+                      onClick={() =>
+                        patch({
+                          slides: draft.slides.filter((x) => x.id !== s.id),
+                          currentSlideId: draft.currentSlideId === s.id
+                            ? draft.slides[i + 1]?.id ?? draft.slides[i - 1]!.id
+                            : draft.currentSlideId,
+                        })
+                      }
+                    >
+                      <Trash2 size={18} aria-hidden="true" />
+                    </button>
+                  </div>
                   <button
                     className="slide-select"
                     aria-pressed={s.id === current.id}
@@ -523,40 +569,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       {i + 1}. {s.title || 'Новый вопрос'}
                     </span>
                   </button>
-                  <details className="slide-menu">
-                    <summary aria-label={`Действия с вопросом ${i + 1}`}>⋯</summary>
-                    <div className="slide-menu-items">
-                      <button
-                        aria-label={`Поднять вопрос ${i + 1}`}
-                        disabled={i === 0}
-                        onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'up') })}
-                      >
-                        Выше
-                      </button>
-                      <button
-                        aria-label={`Опустить вопрос ${i + 1}`}
-                        disabled={i === draft.slides.length - 1}
-                        onClick={() => patch({ slides: moveSlide(draft.slides, s.id, 'down') })}
-                      >
-                        Ниже
-                      </button>
-                      <button onClick={() => patch({ slides: duplicateSlide(draft.slides, s.id) })}>
-                        Копия
-                      </button>
-                      <button
-                        className="danger"
-                        disabled={draft.slides.length === 1}
-                        onClick={() =>
-                          patch({
-                            slides: draft.slides.filter((x) => x.id !== s.id),
-                            currentSlideId: draft.slides.find((x) => x.id !== s.id)!.id,
-                          })
-                        }
-                      >
-                        Удалить вопрос
-                      </button>
-                    </div>
-                  </details>
                 </div>
               );
             })}

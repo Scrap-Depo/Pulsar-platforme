@@ -1,5 +1,63 @@
 import { test, expect } from '@playwright/test';
 
+test('question toolbar preserves edits, order and the saved meeting name', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`toolbar-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-password-toolbar');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  const today = await host.evaluate(() => {
+    const date = new Date();
+    return `Встреча ${new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date)} ${date.getFullYear()}`;
+  });
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await expect(host.getByLabel('Название встречи', { exact: true })).toHaveValue(today);
+  const cards = host.locator('.slide-card');
+  const question = host.getByRole('textbox', { name: 'Вопрос', exact: true });
+  await expect(cards).toHaveCount(4);
+  await host.screenshot({ path: 'test-results/question-controls-laptop.png', fullPage: true });
+  await expect(host.getByRole('button', { name: 'Поднять вопрос 1', exact: true })).toBeDisabled();
+  await expect(host.getByRole('button', { name: 'Опустить вопрос 4', exact: true })).toBeDisabled();
+  await host.getByLabel('Название встречи', { exact: true }).fill('Сохранённое название встречи');
+  await question.fill('Проверка порядка вопросов');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Сохранённый вариант');
+  await host.getByRole('button', { name: 'Опустить вопрос 1', exact: true }).click();
+  await expect(cards.nth(1).locator('.slide-select')).toHaveAttribute('aria-pressed', 'true');
+  await expect(question).toHaveValue('Проверка порядка вопросов');
+  await expect(host.getByLabel('Вариант 1', { exact: true })).toHaveValue('Сохранённый вариант');
+  await host.getByRole('button', { name: 'Создать копию вопроса 2', exact: true }).click();
+  await expect(cards).toHaveCount(5);
+  await cards.nth(2).locator('.slide-select').click();
+  await expect(question).toHaveValue('Проверка порядка вопросов копия');
+  await expect(host.getByLabel('Вариант 1', { exact: true })).toHaveValue('Сохранённый вариант');
+  await host.getByRole('button', { name: 'Удалить вопрос 1', exact: true }).click();
+  await expect(question).toHaveValue('Проверка порядка вопросов копия');
+  await expect(cards.nth(1).locator('.slide-select')).toHaveAttribute('aria-pressed', 'true');
+  await host.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
+  await host.reload();
+  await expect(host.getByLabel('Название встречи', { exact: true })).toHaveValue('Сохранённое название встречи');
+  await expect(cards).toHaveCount(4);
+  await expect(cards.nth(0).locator('.slide-select')).toContainText('1. Проверка порядка вопросов');
+  await expect(cards.nth(1).locator('.slide-select')).toContainText('2. Проверка порядка вопросов копия');
+  await expect(question).toHaveValue('Проверка порядка вопросов копия');
+  await host.getByRole('button', { name: 'Удалить вопрос 2', exact: true }).click();
+  await expect(question).toHaveValue('Оцените текущее состояние по шкале от 1 до 10');
+  while (await cards.count() > 1) {
+    const lastIndex = await cards.count();
+    await host.getByRole('button', { name: `Удалить вопрос ${lastIndex}`, exact: true }).click();
+  }
+  await expect(host.getByRole('button', { name: 'Удалить вопрос 1', exact: true })).toBeDisabled();
+  await expect(host.getByRole('button', { name: 'Опустить вопрос 1', exact: true })).toBeDisabled();
+  await host.setViewportSize({ width: 1024, height: 768 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 1024);
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await host.screenshot({ path: 'test-results/question-controls-mobile.png', fullPage: true });
+  await context.close();
+});
+
 test('host, two mobile participants and independent frozen projector', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const host = await hostContext.newPage();
