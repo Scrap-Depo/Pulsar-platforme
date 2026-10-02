@@ -668,15 +668,23 @@ test('live navigation autosaves, guards invalid questions and ignores arrow keys
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
   await prepareQuestionFixture(host);
   await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  await expect(
+    host.getByRole('region', { name: 'Текущий вопрос и результаты', exact: true }),
+  ).toBeVisible();
   await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
   await host.getByRole('button', { name: '2. Главный инсайт квартала?', exact: true }).click();
   await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Сохранится при переходе');
+  await host.getByLabel('Когда показывать результаты').selectOption('after');
   await host.getByRole('tab', { name: 'Эфир', exact: true }).click();
   await host.getByRole('button', { name: 'Далее', exact: true }).click();
   const stage = host.getByRole('region', { name: 'Текущий вопрос и результаты', exact: true });
   await expect(
     stage.getByRole('heading', { name: 'Сохранится при переходе', exact: true }),
   ).toBeVisible();
+  await host.getByRole('button', { name: 'Показать результаты', exact: true }).click();
+  await expect(stage.getByText('Сбор ответов идёт', { exact: true })).toBeVisible();
+  await host.getByRole('button', { name: 'Открыть лайки', exact: true }).click();
+  await expect(stage.getByText('Сбор ответов идёт', { exact: true })).toBeVisible();
   await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
   await host
     .getByRole('button', { name: '3. Оцените текущее состояние по шкале от 1 до 10', exact: true })
@@ -704,6 +712,27 @@ test('live navigation autosaves, guards invalid questions and ignores arrow keys
     stage.getByRole('heading', { name: 'Шкала после правки', exact: true }),
   ).toBeVisible();
   await host.reload();
+  await expect(
+    stage.getByRole('heading', { name: 'Шкала после правки', exact: true }),
+  ).toBeVisible();
+  await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
+  await host
+    .getByRole('button', { name: '4. Введите слово или короткую ассоциацию', exact: true })
+    .click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Локальный черновик');
+  const other = await context.newPage();
+  await other.goto(host.url());
+  await other.getByRole('tab', { name: 'Подготовка', exact: true }).click();
+  await other
+    .getByRole('textbox', { name: 'Вопрос', exact: true })
+    .fill('Изменение из другой вкладки');
+  await saveQuestion(other);
+  await expect(
+    other.getByText('Вопросы и название встречи сохранены.', { exact: true }),
+  ).toBeVisible();
+  await host.getByRole('tab', { name: 'Эфир', exact: true }).click();
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  await expect(rail.getByRole('alert')).toContainText('Не удалось сохранить');
   await expect(
     stage.getByRole('heading', { name: 'Шкала после правки', exact: true }),
   ).toBeVisible();

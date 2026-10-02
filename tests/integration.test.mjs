@@ -502,8 +502,16 @@ test('reveal and likes during collection, revisions reset likes, finish closes c
     call('b', 'like', { sessionId: sid, responseId: response, enabled: true }),
     /скрыта/,
   );
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'cloud',
+    requestId: 'next-live-controls',
+  });
+  assert.equal((await ref.get()).data().phase, 'closed');
+  assert.equal((await ref.get()).data().likesOpen, false);
+  await assert.rejects(send('b', sid, 'live-controls', 'Поздно'));
   await call('host-a', 'finish', { sessionId: sid });
-  const closed = (await ref.get()).data();
+  const closed = (await db.doc(`meetings/${sid}/rounds/next-live-controls`).get()).data();
   assert.equal(closed.phase, 'closed');
   assert.equal(closed.likesOpen, false);
   await assert.rejects(send('b', sid, 'live-controls', 'Поздно'));

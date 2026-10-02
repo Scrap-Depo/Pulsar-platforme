@@ -413,6 +413,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
             <button
               key={key}
               role="tab"
+              disabled={busy}
               aria-selected={view === key}
               className="host-tab"
               onClick={() => {
