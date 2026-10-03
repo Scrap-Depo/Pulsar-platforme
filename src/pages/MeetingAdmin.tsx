@@ -153,6 +153,18 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const [notice, setNotice] = useState('');
   const [navigationError, setNavigationError] = useState('');
   const navigationRef = useRef(false);
+  // Shows the chosen question at once while the server confirms the switch.
+  const [pendingSlideId, setPendingSlideId] = useState<string | null>(null);
+  const liveSlideId = room.data?.round?.slide.id;
+  useEffect(() => {
+    if (!pendingSlideId) return;
+    if (liveSlideId === pendingSlideId) {
+      setPendingSlideId(null);
+      return;
+    }
+    const timer = window.setTimeout(() => setPendingSlideId(null), 10000);
+    return () => window.clearTimeout(timer);
+  }, [pendingSlideId, liveSlideId]);
   const navigationRequest = useRef<{ slideId: string; requestId: string } | null>(null);
   const [deleteText, setDeleteText] = useState('');
   const [historyId, setHistoryId] = useState('');
@@ -280,6 +292,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       return;
     }
     navigationRef.current = true;
+    setPendingSlideId(slide.id);
     try {
       if (dirty) {
         const saved = await run('save', {
@@ -289,6 +302,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           version: draft!.version,
         });
         if (!saved) {
+          setPendingSlideId(null);
           setNavigationError('Не удалось сохранить правки. Новый вопрос не запущен.');
           return;
         }
@@ -303,10 +317,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         navigationRequest.current = null;
         setDraft((previous) => (previous ? { ...previous, currentSlideId: slide.id } : previous));
         setTab('live');
-      } else
+      } else {
+        setPendingSlideId(null);
         setNavigationError(
           'Запуск не подтверждён. Нажмите на вопрос ещё раз, чтобы повторить попытку.',
         );
+      }
     } finally {
       navigationRef.current = false;
     }
@@ -451,7 +467,8 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         <>
           <LiveQuestionRail
             slides={draft.slides}
-            liveId={round?.slide.id}
+            liveId={pendingSlideId ?? round?.slide.id}
+            switching={pendingSlideId !== null && pendingSlideId !== round?.slide.id}
             doneIds={rounds.data.map((r) => r.slide.id)}
             disabled={busy || !online}
             onLaunch={launchFromLive}
@@ -1596,6 +1613,7 @@ function removeDrafts(sessionId: string) {
 function LiveQuestionRail({
   slides,
   liveId,
+  switching,
   doneIds,
   disabled,
   onLaunch,
@@ -1603,6 +1621,7 @@ function LiveQuestionRail({
 }: {
   slides: SessionSlide[];
   liveId?: string;
+  switching: boolean;
   doneIds: string[];
   disabled: boolean;
   onLaunch: (slide: SessionSlide) => Promise<void>;
@@ -1698,6 +1717,11 @@ function LiveQuestionRail({
           );
         })}
       </div>
+      {switching && (
+        <p className="rail-switching" role="status">
+          Переключаем вопрос…
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
     </section>
   );

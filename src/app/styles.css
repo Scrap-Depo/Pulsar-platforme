@@ -2031,3 +2031,5 @@ a {
 .audience-view > header { max-width: none; }
 .audience-view .sent-question { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-muted); }
 .audience-view .sent-card .sent-count { max-width: 32ch; }
+
+.live-question-rail .rail-switching { margin: 8px 0 0; color: var(--accent); font-weight: 600; }

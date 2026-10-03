@@ -1,5 +1,6 @@
 {
   "buildCommand": "VITE_API_TRANSPORT=vercel npm run build",
+  "regions": ["fra1"],
   "functions": {
     "api/pulsar.js": { "maxDuration": 60 }
   },
