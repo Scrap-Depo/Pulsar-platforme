@@ -61,9 +61,12 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
     <main className={`live-shell ${viewer ? 'projector-view' : 'audience-view'}`}>
       {!(viewer && sid) && (
         <header>
-          <h1>
+          <h1 className="audience-brand">
             <span className="pulse-dot" aria-hidden="true" />
-            Пульсар
+            <span>
+              Пульсар
+              <span className="brand-description"> — платформа интерактивных опросов</span>
+            </span>
           </h1>
           <p>{viewer ? 'Экран аудитории' : 'Участие во встрече'}</p>
         </header>
