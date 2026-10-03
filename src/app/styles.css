@@ -1939,3 +1939,5 @@ a {
 .audience-view p[role="status"] { font-size: 14px; font-weight: 400; }
 .audience-view .response-form label { font-size: 14px; }
 .audience-view .response-form textarea { font-size: 20px; line-height: 1.5; }
+
+.idea-like-button { touch-action: manipulation; }

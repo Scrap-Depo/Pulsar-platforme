@@ -173,7 +173,7 @@ function Connected({
     uid,
   );
   const [error, setError] = useState('');
-  const [liking, setLiking] = useState<string | null>(null);
+  const likeRequests = useRef(new Map<string, { desired: boolean }>());
   const [likeAcks, setLikeAcks] = useState<
     Record<string, { roundId: string; revision: number; enabled: boolean; pending: boolean }>
   >({});
@@ -259,19 +259,36 @@ function Connected({
       </>
     );
   async function toggle(response: PublicResponse, enabled: boolean) {
-    setLiking(response.id);
+    const roundId = round!.id;
+    const key = `${roundId}:${response.id}:${response.revision}`;
+    const existing = likeRequests.current.get(key);
+    const request = existing ?? { desired: enabled };
+    if (existing) request.desired = !request.desired;
     setError('');
     setLikeAcks((current) => ({
       ...current,
-      [response.id]: { roundId: round!.id, revision: response.revision, enabled, pending: true },
+      [response.id]: {
+        roundId,
+        revision: response.revision,
+        enabled: request.desired,
+        pending: true,
+      },
     }));
+    if (existing) return;
+    likeRequests.current.set(key, request);
     try {
-      await command('like', { sessionId, roundId: round!.id, responseId: response.id, enabled });
-      setLikeAcks((current) => ({
-        ...current,
-        [response.id]: { roundId: round!.id, revision: response.revision, enabled, pending: false },
-      }));
-      setLikeNotice({ roundId: round!.id, responseId: response.id, enabled });
+      while (true) {
+        const desired = request.desired;
+        await command('like', { sessionId, roundId, responseId: response.id, enabled: desired });
+        // A tap during the request changes the desired state; send it next, in order.
+        if (request.desired !== desired) continue;
+        setLikeAcks((current) => ({
+          ...current,
+          [response.id]: { roundId, revision: response.revision, enabled: desired, pending: false },
+        }));
+        setLikeNotice({ roundId, responseId: response.id, enabled: desired });
+        break;
+      }
     } catch (e) {
       setLikeAcks((current) => {
         const next = { ...current };
@@ -280,7 +297,7 @@ function Connected({
       });
       setError(message(e));
     } finally {
-      setLiking(null);
+      likeRequests.current.delete(key);
     }
   }
   const ownAnswers = Object.values(own.data?.answers ?? {});
@@ -350,7 +367,7 @@ function Connected({
                     <div className="idea-like-action">
                       <button
                         className="idea-like-button"
-                        disabled={!round.likesOpen || !likes.loaded || liking !== null}
+                        disabled={!round.likesOpen || !likes.loaded}
                         aria-label={`${enabled ? 'Снять лайк' : 'Поставить лайк'} (${r.likes})`}
                         title={
                           round.likesOpen
@@ -365,7 +382,7 @@ function Connected({
                         <LikeIcon size={48} />
                         <span>{r.likes}</span>
                       </button>
-                      {liking === r.id ? (
+                      {ack?.roundId === round.id && ack.revision === r.revision && ack.pending ? (
                         <p className="like-feedback" role="status">
                           {ack?.enabled ? 'Ставим лайк…' : 'Снимаем лайк…'}
                         </p>

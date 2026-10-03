@@ -896,8 +896,14 @@ test('reflection template shows others cards after answering and allows only oth
       .getByRole('link', { name: 'Открыть экран проектора', exact: true })
       .getAttribute('href'))!,
   );
-  const firstContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const secondContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const firstContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+  });
+  const secondContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+  });
   let rejectLike = false;
   // Simulate a slow network: button feedback must not wait for the server.
   await firstContext.route('**/europe-west1/pulsar', async (route) => {
@@ -963,6 +969,15 @@ test('reflection template shows others cards after answering and allows only oth
     timeout: 500,
   });
   await expect(first.getByText('Лайк снят.', { exact: true })).toBeVisible();
+  await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  // A second tap while the first save is delayed must cancel without a third tap.
+  await other.getByRole('button').tap();
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'true', { timeout: 500 });
+  await other.getByRole('button').tap();
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'false', {
+    timeout: 500,
+  });
+  await expect(other.getByText('Лайк снят.', { exact: true })).toBeVisible();
   await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   rejectLike = true;
   await other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
