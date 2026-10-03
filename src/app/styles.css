@@ -1794,8 +1794,8 @@ a {
 }
 
 .idea-like-button {
-  min-width: 64px;
-  min-height: 44px;
+  min-width: 88px;
+  min-height: 64px;
 }
 
 .idea-like-button[aria-pressed="true"] {

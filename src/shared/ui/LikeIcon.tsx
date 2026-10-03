@@ -1,6 +1,6 @@
 import likeImage from '../assets/like.svg';
 
-export default function LikeIcon({ size = 20 }: { size?: number }) {
+export default function LikeIcon({ size = 48 }: { size?: number }) {
   return (
     <img
       src={likeImage}

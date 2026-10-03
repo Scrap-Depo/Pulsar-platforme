@@ -298,7 +298,7 @@ function Connected({
                         className="idea-like-count"
                         aria-label={`Ваш ответ · Лайков: ${r.likes}`}
                       >
-                        <LikeIcon size={20} />
+                        <LikeIcon size={48} />
                         <span>{r.likes}</span>
                       </span>
                     </div>
@@ -317,7 +317,7 @@ function Connected({
                       aria-pressed={enabled}
                       onClick={() => void toggle(r, !enabled)}
                     >
-                      <LikeIcon size={20} />
+                      <LikeIcon size={48} />
                       <span>{r.likes}</span>
                     </button>
                   )}
