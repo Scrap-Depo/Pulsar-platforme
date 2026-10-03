@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import { filterReasons } from '../functions/content-filter.mjs';
 
 test('Russian profanity and obvious evasions are held, ordinary word fragments are not', () => {
-  for (const text of ['блядь', 'ХУЙ', 'пиздец', 'заебал', 'ёбаный', 'х у й', 'х.у.й']) {
+  for (const text of [
+    'блядь',
+    'ХУЙ',
+    'пиздец',
+    'заебал',
+    'ёбаный',
+    'долбоёб',
+    'х у й',
+    'х.у.й',
+    'это х.у.й вообще',
+  ]) {
     assert.ok(filterReasons(text).includes('Нецензурная лексика'), text);
   }
   for (const text of [

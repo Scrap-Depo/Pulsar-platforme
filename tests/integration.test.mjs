@@ -715,3 +715,34 @@ test('host live moderation, filter holds and permanent card deletion preserve pu
     false,
   );
 });
+
+test('content controls respect all five configured slots and never delete neighbouring cards', async () => {
+  const { id: sid, joinCode } = await meeting('five-cards-controls');
+  await call('a', 'join', { code: joinCode });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'five',
+    settings: { cardLimit: 5, moderation: false, immediate: true },
+  });
+  const first = await send('a', sid, 'five', 'Первая идея');
+  const fifth = await send('a', sid, 'five', 'Пятая идея', { slot: 4, requestId: 'fifth' });
+  await assert.rejects(send('a', sid, 'five', 'Шестая идея', { slot: 5, requestId: 'sixth' }));
+  await call('host-a', 'deleteResponse', { sessionId: sid, responseId: fifth.id, revision: 1 });
+  await call('host-a', 'deleteResponse', { sessionId: sid, responseId: fifth.id, revision: 1 });
+  const path = `meetings/${sid}/rounds/five`;
+  const privateData = (await db.doc(`${path}/private/a`).get()).data();
+  assert.equal(privateData.answers[0].value, 'Первая идея');
+  assert.equal(privateData.answers[4], undefined);
+  assert.equal((await db.doc(`${path}/published/${first.id}`).get()).exists, true);
+  await call('host-a', 'moderationSettings', {
+    sessionId: sid,
+    moderation: false,
+    contentFilter: false,
+  });
+  const unfiltered = await send('a', sid, 'five', 'Политическая тема', {
+    slot: 1,
+    requestId: 'unfiltered',
+  });
+  assert.equal((await db.doc(`${path}/published/${unfiltered.id}`).get()).exists, true);
+});

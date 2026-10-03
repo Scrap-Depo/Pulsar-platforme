@@ -204,7 +204,7 @@ export function createService(db, onSubmitTiming = () => {}) {
       const rid = text(input.roundId, 100);
       if (!/^[a-zA-Z0-9-]+$/.test(rid)) fail('Некорректный ID раунда.');
       const slot = input.slot ?? 0;
-      if (!Number.isInteger(slot) || slot < 0 || slot > 2) fail('Лимит карточек достигнут.');
+      if (!Number.isInteger(slot) || slot < 0 || slot > 4) fail('Лимит карточек достигнут.');
       const rref = mref.collection('rounds').doc(rid);
       const id = responseId(rid, uid, slot);
       const ref = rref.collection('responses').doc(id);
