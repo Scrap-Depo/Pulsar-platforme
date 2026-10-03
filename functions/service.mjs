@@ -39,6 +39,40 @@ export function createService(db, onSubmitTiming = () => {}) {
     if (!uid) fail('Войдите в приложение.');
     if (!input || typeof input.action !== 'string') fail('Неизвестное действие.');
     const { action } = input;
+    if (action === 'filterTemplates') {
+      if (!['password', 'google.com'].includes(provider))
+        fail('Войдите в аккаунт ведущего для работы с наборами фильтра.');
+      const ref = db.doc(`hostFilterTemplates/${uid}`);
+      if (input.operation === 'list')
+        return { templates: (await ref.get()).data()?.templates ?? [] };
+      if (!['save', 'delete'].includes(input.operation)) fail('Неизвестное действие с набором.');
+      const id = text(input.id, 100, 'ID набора');
+      if (!/^[a-zA-Z0-9-]+$/.test(id)) fail('Некорректный ID набора.');
+      return db.runTransaction(async (tx) => {
+        const templates = (await tx.get(ref)).data()?.templates ?? [];
+        let updated;
+        if (input.operation === 'delete') {
+          if (!templates.some((t) => t.id === id)) fail('Набор уже удалён. Обновите список.');
+          updated = templates.filter((t) => t.id !== id);
+        } else {
+          const name = text(input.name, 80, 'Название набора');
+          const key = name.normalize('NFKC').toLocaleLowerCase('ru-RU');
+          const existing = templates.find(
+            (t) => t.name.normalize('NFKC').toLocaleLowerCase('ru-RU') === key,
+          );
+          const entry = {
+            id: existing?.id ?? id,
+            name,
+            ...contentPolicy(input.policy),
+            updatedAt: now(),
+          };
+          updated = [...templates.filter((t) => t.id !== entry.id), entry];
+          if (updated.length > 20) fail('Можно сохранить до 20 наборов. Удалите ненужный.');
+        }
+        tx.set(ref, { templates: updated });
+        return { templates: updated };
+      });
+    }
     if (action === 'create') {
       if (!['password', 'google.com'].includes(provider))
         fail('Для создания встречи войдите в аккаунт ведущего.');
@@ -204,6 +238,7 @@ export function createService(db, onSubmitTiming = () => {}) {
         platform: 'Пульсар — платформа интерактивных опросов',
         title: meeting.title,
         exportedAt: now(),
+        reportNotes: meeting.reportNotes ?? { conclusions: '', agreements: '', version: 0 },
         joinedCount: (await mref.collection('members').get()).size,
         rounds: exported,
       };
@@ -315,6 +350,25 @@ export function createService(db, onSubmitTiming = () => {}) {
     }
     return db.runTransaction(async (tx) => {
       const meeting = required(await tx.get(mref), 'Встреча удалена или недоступна.');
+      if (action === 'reportNotes') {
+        owner(meeting, uid);
+        if (meeting.status === 'deleting') fail('Встреча удаляется.');
+        if (input.version !== (meeting.reportNotes?.version ?? 0))
+          fail('Выводы изменены в другой вкладке. Обновите страницу перед сохранением.');
+        const note = (value) => {
+          if (typeof value !== 'string' || [...value.trim()].length > 4000)
+            fail('Выводы и договорённости: не больше 4000 символов в каждом поле.');
+          return value.trim();
+        };
+        const reportNotes = {
+          conclusions: note(input.conclusions),
+          agreements: note(input.agreements),
+          version: input.version + 1,
+          updatedAt: now(),
+        };
+        tx.update(mref, { reportNotes });
+        return { reportNotes };
+      }
       active(meeting);
       if (action === 'contentPolicy') {
         owner(meeting, uid);

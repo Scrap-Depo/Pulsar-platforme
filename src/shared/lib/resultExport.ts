@@ -5,6 +5,7 @@ export type ExportResponse = Pick<
   'value' | 'displayValue' | 'moderation' | 'likes' | 'revision'
 >;
 export type ResultsExport = {
+  reportNotes?: { conclusions: string; agreements: string };
   platform?: string;
   joinedCount?: number;
   title: string;

@@ -41,6 +41,7 @@ import {
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
 import MeetingFilterSettings from './MeetingFilterSettings';
+import MeetingReportNotes from './MeetingReportNotes';
 import { ResultsExport } from '../shared/lib/resultExport';
 import './MeetingNavigation.css';
 
@@ -1064,6 +1065,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
       {view === 'results' && (
         <section className="card">
           <h2>История и данные</h2>
+          <MeetingReportNotes
+            key={m.reportNotes?.version ?? 0}
+            notes={m.reportNotes}
+            disabled={busy || !online}
+            onSave={(notes) => run('reportNotes', notes)}
+          />
           <label>
             История запусков вопросов
             <select value={historyId} onChange={(e) => setHistoryId(e.target.value)}>

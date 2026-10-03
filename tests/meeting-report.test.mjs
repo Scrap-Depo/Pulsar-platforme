@@ -95,3 +95,15 @@ test('internal report explicitly includes originals and statuses while default r
     true,
   );
 });
+
+test('PDF distinguishes saved host conclusions from participant answers and omits empty notes', () => {
+  const notes = { conclusions: 'Команде нужна поддержка', agreements: 'Анна готовит план до пятницы' };
+  const document = meetingReport({ ...data, reportNotes: notes });
+  const json = JSON.stringify(document);
+  for (const text of ['Выводы и договорённости ведущего', notes.conclusions, notes.agreements])
+    assert.ok(json.includes(text), text);
+  const titles = document.content.map((block) => block.text).filter(Boolean);
+  assert.ok(titles.indexOf(notes.conclusions) < titles.indexOf('1. Голосование'));
+  const empty = JSON.stringify(meetingReport({ ...data, reportNotes: { conclusions: ' ', agreements: '' } }));
+  assert.equal(empty.includes('Выводы и договорённости ведущего'), false);
+});

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Meeting } from '../shared/types/live';
+import FilterTemplates from './FilterTemplates';
 
 type Policy = NonNullable<Meeting['contentPolicy']>;
 export default function MeetingFilterSettings({
@@ -30,6 +31,15 @@ export default function MeetingFilterSettings({
         задерживаются автоматически. Фильтр по словам может ошибаться.
       </p>
       <fieldset disabled={disabled}>
+        <FilterTemplates
+          policy={{ blockedWords: list(blocked), allowedPhrases: list(allowed) }}
+          disabled={disabled || invalid}
+          onApply={(next) => {
+            setBlocked(next.blockedWords.join('\n'));
+            setAllowed(next.allowedPhrases.join('\n'));
+            setChanged(true);
+          }}
+        />
         <label>
           Запрещённые слова и фразы
           <textarea

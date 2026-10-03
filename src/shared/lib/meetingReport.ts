@@ -62,6 +62,23 @@ export function meetingReport(data: ResultsExport, includePrivate = false): TDoc
       margin: [0, 0, 0, 16],
     },
   ];
+  const notes = data.reportNotes;
+  if (notes?.conclusions?.trim() || notes?.agreements?.trim()) {
+    content.push({
+      text: 'Выводы и договорённости ведущего',
+      fontSize: 18,
+      bold: true,
+      margin: [0, 16, 0, 12],
+    });
+    for (const [title, value] of [
+      ['Выводы ведущего', notes.conclusions],
+      ['Договорённости и следующие шаги', notes.agreements],
+    ]) {
+      if (!value?.trim()) continue;
+      content.push({ text: title, bold: true, margin: [0, 10, 0, 6] });
+      content.push({ text: value.trim(), margin: [0, 0, 0, 10] });
+    }
+  }
   if (!rounds.length) content.push({ text: 'Проведённых вопросов нет.' });
   rounds.forEach((round, index) => {
     const text = ['word-cloud', 'open-answers'].includes(round.slide.type);
