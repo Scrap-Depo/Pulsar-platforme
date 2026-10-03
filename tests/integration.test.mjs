@@ -817,15 +817,21 @@ test('meeting word lists apply across text questions, require owner access and p
 test('saved filter sets are private to the host account, reusable and bounded', async () => {
   const host = `host-templates-${runId}`;
   await assert.rejects(call('guest', 'filterTemplates', { operation: 'list' }));
-  const save = (id, name, policy = { blockedWords: ['КОТ'], allowedPhrases: ['президент компании'] }) =>
-    call(host, 'filterTemplates', { operation: 'save', id, name, policy });
+  const save = (
+    id,
+    name,
+    policy = { blockedWords: ['КОТ'], allowedPhrases: ['президент компании'] },
+  ) => call(host, 'filterTemplates', { operation: 'save', id, name, policy });
   await assert.rejects(save('bad/id', 'Некорректный'));
   await assert.rejects(save('bad-word', 'Некорректный', { blockedWords: ['x'.repeat(81)] }));
   await save('base', 'Командные встречи');
   const stored = await call(host, 'filterTemplates', { operation: 'list' });
   assert.equal(stored.templates.length, 1);
   assert.deepEqual(stored.templates[0].blockedWords, ['кот']);
-  assert.deepEqual((await call('host-other-templates', 'filterTemplates', { operation: 'list' })).templates, []);
+  assert.deepEqual(
+    (await call('host-other-templates', 'filterTemplates', { operation: 'list' })).templates,
+    [],
+  );
   const updated = await save('different-id', 'КОМАНДНЫЕ ВСТРЕЧИ', { blockedWords: ['секрет'] });
   assert.equal(updated.templates.length, 1);
   assert.equal(updated.templates[0].id, 'base');
@@ -833,18 +839,27 @@ test('saved filter sets are private to the host account, reusable and bounded', 
   const { id: sid } = await meeting('template-application');
   await call('host-a', 'contentPolicy', { sessionId: sid, policy: updated.templates[0] });
   await call(host, 'filterTemplates', { operation: 'delete', id: 'base' });
-  assert.deepEqual((await db.doc(`meetings/${sid}`).get()).data().contentPolicy.blockedWords, ['секрет']);
+  assert.deepEqual((await db.doc(`meetings/${sid}`).get()).data().contentPolicy.blockedWords, [
+    'секрет',
+  ]);
   for (let i = 0; i < 20; i++) await save(`set-${i}`, `Набор ${i}`);
   await assert.rejects(save('overflow', 'Лишний'), /20 наборов/);
   const outsider = env.authenticatedContext('other').firestore();
   await assertFails(getDoc(doc(outsider, `hostFilterTemplates/${host}`)));
-  await assertFails(getDoc(doc(env.authenticatedContext(host).firestore(), `hostFilterTemplates/${host}`)));
+  await assertFails(
+    getDoc(doc(env.authenticatedContext(host).firestore(), `hostFilterTemplates/${host}`)),
+  );
 });
 
 test('host report notes survive finish and export, resist stale edits and stay private', async () => {
   const { id: sid, joinCode } = await meeting('report-notes');
   await call('notes-person', 'join', { code: joinCode });
-  const notes = { sessionId: sid, conclusions: 'Команде нужна поддержка', agreements: 'Анна готовит план до пятницы', version: 0 };
+  const notes = {
+    sessionId: sid,
+    conclusions: 'Команде нужна поддержка',
+    agreements: 'Анна готовит план до пятницы',
+    version: 0,
+  };
   await assert.rejects(call('notes-person', 'reportNotes', notes));
   await assert.rejects(call('host-b', 'reportNotes', notes));
   await assert.rejects(call('host-a', 'reportNotes', { ...notes, conclusions: 'x'.repeat(4001) }));
@@ -853,7 +868,11 @@ test('host report notes survive finish and export, resist stale edits and stay p
   await call('host-a', 'open', { sessionId: sid, slideId: 'choice', requestId: 'notes-round' });
   await send('notes-person', sid, 'notes-round', 1);
   await call('host-a', 'finish', { sessionId: sid });
-  await call('host-a', 'reportNotes', { ...notes, version: 1, agreements: 'Анна готовит план до понедельника' });
+  await call('host-a', 'reportNotes', {
+    ...notes,
+    version: 1,
+    agreements: 'Анна готовит план до понедельника',
+  });
   const exported = await call('host-a', 'export', { sessionId: sid });
   assert.equal(exported.reportNotes.conclusions, notes.conclusions);
   assert.equal(exported.reportNotes.agreements, 'Анна готовит план до понедельника');
@@ -861,7 +880,14 @@ test('host report notes survive finish and export, resist stale edits and stay p
   assert.equal(exported.rounds[0].phase, 'closed');
   const room = (await db.doc(`rooms/${sid}`).get()).data();
   assert.equal(room.reportNotes, undefined);
-  await assertFails(getDoc(doc(env.authenticatedContext('notes-person').firestore(), `meetings/${sid}`)));
-  await call('host-a', 'reportNotes', { sessionId: sid, version: 2, conclusions: '', agreements: '' });
+  await assertFails(
+    getDoc(doc(env.authenticatedContext('notes-person').firestore(), `meetings/${sid}`)),
+  );
+  await call('host-a', 'reportNotes', {
+    sessionId: sid,
+    version: 2,
+    conclusions: '',
+    agreements: '',
+  });
   assert.equal((await call('host-a', 'export', { sessionId: sid })).reportNotes.conclusions, '');
 });

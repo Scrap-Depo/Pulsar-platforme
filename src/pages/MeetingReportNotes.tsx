@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Meeting } from '../shared/types/live';
 
 export default function MeetingReportNotes({
@@ -13,6 +13,14 @@ export default function MeetingReportNotes({
   const [conclusions, setConclusions] = useState(notes?.conclusions ?? '');
   const [agreements, setAgreements] = useState(notes?.agreements ?? '');
   const [changed, setChanged] = useState(false);
+  const [version, setVersion] = useState(notes?.version ?? 0);
+  useEffect(() => {
+    if (changed) return;
+    setConclusions(notes?.conclusions ?? '');
+    setAgreements(notes?.agreements ?? '');
+    setVersion(notes?.version ?? 0);
+  }, [notes, changed]);
+  const conflict = changed && version !== (notes?.version ?? 0);
   const invalid = [conclusions, agreements].some((text) => [...text.trim()].length > 4000);
   return (
     <details>
@@ -48,9 +56,9 @@ export default function MeetingReportNotes({
         </label>
         <p>До 4000 символов в каждом поле. Перед скачиванием PDF сохраните заметки.</p>
         <button
-          disabled={!changed || invalid}
+          disabled={!changed || invalid || conflict}
           onClick={() =>
-            void onSave({ conclusions, agreements, version: notes?.version ?? 0 }).then((ok) => {
+            void onSave({ conclusions, agreements, version }).then((ok) => {
               if (ok) setChanged(false);
             })
           }
@@ -59,6 +67,22 @@ export default function MeetingReportNotes({
         </button>
         {invalid && <p role="alert">Сократите каждое поле до 4000 символов.</p>}
         {changed && <p role="status">Есть несохранённые заметки. Они пока не попадут в PDF.</p>}
+        {conflict && (
+          <>
+            <p role="alert">
+              Заметки изменены в другой вкладке. Ваш текст остался в полях. Скопируйте нужное перед
+              загрузкой сохранённой версии.
+            </p>
+            <button
+              onClick={() => {
+                if (window.confirm('Заменить несохранённые заметки сохранённой версией?'))
+                  setChanged(false);
+              }}
+            >
+              Загрузить сохранённые заметки
+            </button>
+          </>
+        )}
       </fieldset>
     </details>
   );

@@ -1145,7 +1145,7 @@ test('whole-meeting PDF download and custom meeting filter rules work through th
     .selectOption('3');
   await saveQuestion(host);
   const filter = host.locator('details.meeting-filter-settings');
-  await filter.locator('summary').click();
+  await filter.locator('summary').first().click();
   await host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }).fill('кот');
   await host
     .getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true })
@@ -1155,14 +1155,14 @@ test('whole-meeting PDF download and custom meeting filter rules work through th
     host.getByRole('button', { name: 'Сохранить фильтр встречи', exact: true }),
   ).toBeDisabled();
   await host.reload();
-  await filter.locator('summary').click();
+  await filter.locator('summary').first().click();
   await expect(
     host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
   ).toHaveValue('кот');
   await expect(
     host.getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true }),
   ).toHaveValue('президент компании');
-  await filter.locator('summary').click();
+  await filter.locator('summary').first().click();
   await host.getByRole('button', { name: '1. Выбор направления', exact: true }).click();
   await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
   const code = (await host.locator('.status-panel .join-code').innerText()).replace(/\s/g, '');
@@ -1217,4 +1217,157 @@ test('whole-meeting PDF download and custom meeting filter rules work through th
   await host.setViewportSize({ width: 390, height: 844 });
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
   await Promise.all([context.close(), pc.close()]);
+});
+
+test('host reuses private account filter sets and saves PDF conclusions after finish', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  const errors: string[] = [];
+  host.on('pageerror', (e) => errors.push(e.message));
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`saved-sets-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-saved-sets-password');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  let filter = host.locator('details.meeting-filter-settings');
+  await filter.locator('summary').first().click();
+  await host
+    .getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true })
+    .fill('секретный проект');
+  await host
+    .getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true })
+    .fill('президент компании');
+  await host.getByText('Мои наборы фильтра', { exact: true }).click();
+  await host
+    .getByRole('textbox', { name: 'Название набора', exact: true })
+    .fill('Командные встречи');
+  await host.getByRole('button', { name: 'Сохранить набор в моём аккаунте', exact: true }).click();
+  await expect(
+    host.getByText('Набор сохранён в аккаунте. Фильтр текущей встречи сохраняется отдельно.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await host.getByRole('button', { name: 'Мои встречи', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await expect(host).toHaveURL(/session=/);
+  const secondMeetingUrl = host.url();
+  filter = host.locator('details.meeting-filter-settings');
+  await filter.locator('summary').first().click();
+  await expect(
+    host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
+  ).toHaveValue('');
+  await host.getByText('Мои наборы фильтра', { exact: true }).click();
+  await expect(
+    host.getByRole('combobox', { name: 'Сохранённый набор', exact: true }).locator('option'),
+  ).toHaveCount(2);
+  await host
+    .getByRole('combobox', { name: 'Сохранённый набор', exact: true })
+    .selectOption({ label: 'Командные встречи' });
+  await host.getByRole('button', { name: 'Загрузить набор в поля', exact: true }).click();
+  await expect(
+    host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
+  ).toHaveValue('секретный проект');
+  await expect(
+    host.getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true }),
+  ).toHaveValue('президент компании');
+  await host.getByRole('button', { name: 'Сохранить фильтр встречи', exact: true }).click();
+  await host.reload();
+  await filter.locator('summary').first().click();
+  await expect(
+    host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
+  ).toHaveValue('секретный проект');
+  await host.getByText('Мои наборы фильтра', { exact: true }).click();
+  await host
+    .getByRole('combobox', { name: 'Сохранённый набор', exact: true })
+    .selectOption({ label: 'Командные встречи' });
+  host.once('dialog', (dialog) => void dialog.accept());
+  await host.getByRole('button', { name: 'Удалить набор', exact: true }).click();
+  await expect(
+    host.getByRole('combobox', { name: 'Сохранённый набор', exact: true }).locator('option'),
+  ).toHaveCount(1);
+  await expect(
+    host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
+  ).toHaveValue('секретный проект');
+  await filter.locator('summary').first().click();
+  await host
+    .getByRole('textbox', { name: 'Вопрос', exact: true })
+    .fill('Какие задачи приоритетны?');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Развитие');
+  await host.getByLabel('Вариант 2', { exact: true }).fill('Поддержка');
+  await saveQuestion(host);
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  await host.getByText('Завершение встречи', { exact: true }).click();
+  host.once('dialog', (dialog) => void dialog.accept());
+  await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
+  await host.getByText('Выводы и договорённости для PDF', { exact: true }).click();
+  await host
+    .getByRole('textbox', { name: 'Выводы ведущего', exact: true })
+    .fill('Команде нужна поддержка');
+  await host
+    .getByRole('textbox', { name: 'Договорённости и следующие шаги', exact: true })
+    .fill('Анна готовит план до пятницы');
+  await expect(
+    host.getByText('Есть несохранённые заметки. Они пока не попадут в PDF.', { exact: true }),
+  ).toBeVisible();
+  await host
+    .getByRole('button', { name: 'Сохранить выводы и договорённости', exact: true })
+    .click();
+  await host.reload();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
+  await host.getByText('Выводы и договорённости для PDF', { exact: true }).click();
+  await expect(host.getByRole('textbox', { name: 'Выводы ведущего', exact: true })).toHaveValue(
+    'Команде нужна поддержка',
+  );
+  await expect(
+    host.getByRole('textbox', { name: 'Договорённости и следующие шаги', exact: true }),
+  ).toHaveValue('Анна готовит план до пятницы');
+  await host
+    .getByRole('textbox', { name: 'Выводы ведущего', exact: true })
+    .fill('Мой несохранённый вывод');
+  const otherTab = await context.newPage();
+  await otherTab.goto(secondMeetingUrl);
+  await otherTab.getByRole('tab', { name: 'История', exact: true }).click();
+  await otherTab.getByText('Выводы и договорённости для PDF', { exact: true }).click();
+  await otherTab
+    .getByRole('textbox', { name: 'Договорённости и следующие шаги', exact: true })
+    .fill('Анна готовит план до понедельника');
+  await otherTab
+    .getByRole('button', { name: 'Сохранить выводы и договорённости', exact: true })
+    .click();
+  await expect(
+    host.getByText(
+      'Заметки изменены в другой вкладке. Ваш текст остался в полях. Скопируйте нужное перед загрузкой сохранённой версии.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(host.getByRole('textbox', { name: 'Выводы ведущего', exact: true })).toHaveValue(
+    'Мой несохранённый вывод',
+  );
+  await expect(
+    host.getByRole('button', { name: 'Сохранить выводы и договорённости', exact: true }),
+  ).toBeDisabled();
+  host.once('dialog', (dialog) => void dialog.accept());
+  await host.getByRole('button', { name: 'Загрузить сохранённые заметки', exact: true }).click();
+  await expect(host.getByRole('textbox', { name: 'Выводы ведущего', exact: true })).toHaveValue(
+    'Команде нужна поддержка',
+  );
+  await expect(
+    host.getByRole('textbox', { name: 'Договорённости и следующие шаги', exact: true }),
+  ).toHaveValue('Анна готовит план до понедельника');
+  await otherTab.close();
+  const downloading = host.waitForEvent('download');
+  await host.getByRole('button', { name: 'Скачать PDF-отчёт встречи', exact: true }).click();
+  const downloaded = await downloading;
+  await downloaded.saveAs('/private/tmp/pulsar-report-with-notes.pdf');
+  const pdf = await readFile('/private/tmp/pulsar-report-with-notes.pdf');
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  expect(errors).toEqual([]);
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  expect(host.url()).toBe(secondMeetingUrl);
+  await context.close();
 });

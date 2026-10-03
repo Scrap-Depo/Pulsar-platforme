@@ -1066,7 +1066,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         <section className="card">
           <h2>История и данные</h2>
           <MeetingReportNotes
-            key={m.reportNotes?.version ?? 0}
             notes={m.reportNotes}
             disabled={busy || !online}
             onSave={(notes) => run('reportNotes', notes)}
