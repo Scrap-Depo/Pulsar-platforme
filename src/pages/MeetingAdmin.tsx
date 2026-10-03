@@ -40,6 +40,8 @@ import {
 } from 'lucide-react';
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
+import MeetingFilterSettings from './MeetingFilterSettings';
+import { ResultsExport } from '../shared/lib/resultExport';
 import './MeetingNavigation.css';
 
 const slideIcons = {
@@ -157,6 +159,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const [openRequest, setOpenRequest] = useState<string | null>(null);
   const [tab, setTab] = useState<HostTab | null>(null);
   const [selectedCard, setSelectedCard] = useState<{ roundId: string; id: string } | null>(null);
+  const [includePrivatePdf, setIncludePrivatePdf] = useState(false);
   const online = useOnline();
   useEffect(() => {
     if (meeting.data && !dirty)
@@ -184,7 +187,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
     setNotice('');
     try {
       const result = await command(action, { sessionId: id, ...params });
-      if (action === 'export') download(result, `pulsar-${id}.json`);
+      if (action === 'export' && params.format === 'pdf') {
+        const { downloadMeetingPdf } = await import('../shared/lib/downloadMeetingPdf');
+        await downloadMeetingPdf(
+          result as unknown as ResultsExport,
+          `pulsar-${id}-meeting.pdf`,
+          includePrivatePdf,
+        );
+      } else if (action === 'export') download(result, `pulsar-${id}.json`);
       if (action === 'delete') {
         removeDrafts(id);
         onBack();
@@ -429,6 +439,14 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           Открыть экран просмотра
         </a>
       </div>
+      {!finished && (view === 'prepare' || view === 'live') && (
+        <MeetingFilterSettings
+          key={JSON.stringify(m.contentPolicy ?? {})}
+          policy={m.contentPolicy}
+          disabled={busy || !online}
+          onSave={(policy) => run('contentPolicy', { policy })}
+        />
+      )}
       {view === 'live' && !finished && (
         <>
           <LiveQuestionRail
@@ -1056,6 +1074,26 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           >
             Скачать результаты JSON
           </button>
+          <label className="choice">
+            <input
+              type="checkbox"
+              checked={includePrivatePdf}
+              disabled={busy}
+              onChange={(e) => setIncludePrivatePdf(e.target.checked)}
+            />
+            Включить в PDF исходные, скрытые и ожидающие ответы (только для ведущего)
+          </label>
+          <button
+            disabled={busy || m.status !== 'finished' || !online}
+            onClick={() => void run('export', { format: 'pdf' })}
+          >
+            Скачать PDF-отчёт встречи
+          </button>
+          <p>
+            PDF содержит все проведённые вопросы и подпись Пульсара. Доступен после завершения
+            встречи. По умолчанию — только одобренные редакции текстовых ответов; личные
+            идентификаторы участников не включаются.
+          </p>
           <details>
             <summary>Удалить встречу и все ответы</summary>
             <p>

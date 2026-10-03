@@ -6,6 +6,7 @@ export type ExportResponse = Pick<
 >;
 export type ResultsExport = {
   platform?: string;
+  joinedCount?: number;
   title: string;
   exportedAt: string;
   rounds: Array<Round & { answeredCount: number; responses: ExportResponse[] }>;

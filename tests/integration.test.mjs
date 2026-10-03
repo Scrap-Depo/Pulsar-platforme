@@ -748,3 +748,68 @@ test('content controls respect all five configured slots and never delete neighb
   });
   assert.equal((await db.doc(`${path}/published/${unfiltered.id}`).get()).exists, true);
 });
+
+test('meeting word lists apply across text questions, require owner access and preserve previous decisions', async () => {
+  const { id: sid, joinCode } = await meeting('custom-meeting-filter');
+  await call('a', 'join', { code: joinCode });
+  await assert.rejects(
+    call('a', 'contentPolicy', { sessionId: sid, policy: { blockedWords: ['кот'] } }),
+    /Нет доступа ведущего/,
+  );
+  await assert.rejects(
+    call('host-a', 'contentPolicy', { sessionId: sid, policy: { blockedWords: ['x'.repeat(81)] } }),
+  );
+  await call('host-a', 'contentPolicy', {
+    sessionId: sid,
+    policy: { blockedWords: ['Кот'], allowedPhrases: ['президент компании'] },
+  });
+  assert.deepEqual((await db.doc(`meetings/${sid}`).get()).data().contentPolicy.blockedWords, [
+    'кот',
+  ]);
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'custom-text',
+    settings: { moderation: false, immediate: true, contentFilter: false, cardLimit: 3 },
+  });
+  const held = await send('a', sid, 'custom-text', 'Кот', { slot: 0, requestId: 'held' });
+  const safe = await send('a', sid, 'custom-text', 'Который ответил', {
+    slot: 1,
+    requestId: 'safe',
+  });
+  const path = `meetings/${sid}/rounds/custom-text`;
+  assert.equal((await db.doc(`${path}/published/${held.id}`).get()).exists, false);
+  assert.equal((await db.doc(`${path}/published/${safe.id}`).get()).exists, true);
+  assert.deepEqual((await db.doc(`${path}/responses/${held.id}`).get()).data().filterReasons, [
+    'Запрещённое слово встречи',
+  ]);
+  await call('host-a', 'contentPolicy', {
+    sessionId: sid,
+    policy: { blockedWords: ['новый список'], allowedPhrases: ['президент компании'] },
+  });
+  assert.equal((await db.doc(`${path}/responses/${held.id}`).get()).data().moderation, 'pending');
+  await call('host-a', 'contentPolicy', {
+    sessionId: sid,
+    policy: { blockedWords: ['кот'], allowedPhrases: ['президент компании'] },
+  });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'cloud',
+    requestId: 'custom-cloud',
+    settings: { moderation: false, immediate: true },
+  });
+  const cloudHeld = await send('a', sid, 'custom-cloud', 'кот');
+  assert.equal(
+    (await db.doc(`meetings/${sid}/rounds/custom-cloud/responses/${cloudHeld.id}`).get()).data()
+      .moderation,
+    'pending',
+  );
+  const permitted = await send('a', sid, 'custom-cloud', 'Президент компании', {
+    revision: 1,
+    requestId: 'business',
+  });
+  assert.equal(
+    (await db.doc(`meetings/${sid}/rounds/custom-cloud/published/${permitted.id}`).get()).exists,
+    true,
+  );
+});

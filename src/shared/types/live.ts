@@ -35,6 +35,7 @@ export type OwnResponse = Pick<
 >;
 export type OwnAnswers = { answers: Record<string, OwnResponse> };
 export type Meeting = {
+  contentPolicy?: { blockedWords: string[]; allowedPhrases: string[] };
   id: string;
   title: string;
   joinCode: string;

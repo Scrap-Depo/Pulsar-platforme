@@ -7,22 +7,60 @@ const spacedProfanity =
 const threat =
   /(?:террор(?:изм|ист|истическ)|теракт|взорв(?:ать|ём|ем|у)|(?:убить|расстрелять|подорвать)\s+(?:людей|человека|школу|толпу)|(?:сделать|собрать|изготовить)\s+бомб)/u;
 const politics =
-  /(?:^|[^\p{L}])(?:политик[а-я]*|выбор[ыа]|президент[а-я]*|парламент[а-я]*|путин[а-я]*|зеленск[а-я]*|навальн[а-я]*|митинг[а-я]*|санкци[а-я]*)(?=$|[^\p{L}])/u;
+  /(?:^|[^\p{L}])(?:политик[а-я]*|выбор(?:ы|ов|ах|ам|ами)|президент[а-я]*|парламент[а-я]*|путин[а-я]*|зеленск[а-я]*|навальн[а-я]*|митинг[а-я]*|санкци[а-я]*)(?=$|[^\p{L}])/u;
 
-export function filterReasons(value) {
+const normalize = (value) =>
+  value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/ё/g, 'е')
+    .replace(/\s+/gu, ' ')
+    .trim();
+const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const literalPattern = (value) =>
+  new RegExp(`(^|[^\\p{L}\\p{N}])(${escape(value)})(?=$|[^\\p{L}\\p{N}])`, 'gu');
+const businessExceptions =
+  /(?:^|[^\p{L}])политик(?:а|и|у|ой|е|ою)\s+(?:компании|организации|предприятия|конфиденциальности|безопасности|качества|оплаты|возврата)(?=$|[^\p{L}])/gu;
+
+export function contentPolicy(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    throw new Error('Некорректные настройки фильтра.');
+  const list = (value, label) => {
+    if (value === undefined) return [];
+    if (
+      !Array.isArray(value) ||
+      value.length > 100 ||
+      value.some((word) => typeof word !== 'string' || !word.trim() || [...word.trim()].length > 80)
+    )
+      throw new Error(`${label}: до 100 слов или фраз, каждое от 1 до 80 символов.`);
+    return [...new Set(value.map(normalize))];
+  };
+  return {
+    blockedWords: list(input.blockedWords, 'Запрещённые слова'),
+    allowedPhrases: list(input.allowedPhrases, 'Разрешённые деловые фразы'),
+  };
+}
+
+export function filterReasons(value, policy = {}, builtIn = true) {
   if (typeof value !== 'string') return [];
-  const source = value.normalize('NFKC').toLocaleLowerCase('ru-RU');
+  const source = normalize(value);
   const tokens = source.match(/[\p{L}]+/gu) ?? [];
   // Also catch common spacing/punctuation evasions inside a short swear word.
   const joined = source.replace(/(?<=\p{L})[.*_\-\s]+(?=\p{L})/gu, '');
   const reasons = [];
   if (
-    tokens.some((word) => profanity.test(word)) ||
-    profanity.test(joined) ||
-    spacedProfanity.test(source)
+    builtIn &&
+    (tokens.some((word) => profanity.test(word)) ||
+      profanity.test(joined) ||
+      spacedProfanity.test(source))
   )
     reasons.push('Нецензурная лексика');
-  if (threat.test(source)) reasons.push('Терроризм или угрозы насилия');
-  if (politics.test(source)) reasons.push('Политическая тема');
+  if (builtIn && threat.test(source)) reasons.push('Терроризм или угрозы насилия');
+  let politicalText = source.replace(businessExceptions, ' ');
+  for (const phrase of policy.allowedPhrases ?? [])
+    politicalText = politicalText.replace(literalPattern(normalize(phrase)), '$1 ');
+  if (builtIn && politics.test(politicalText)) reasons.push('Политическая тема');
+  if ((policy.blockedWords ?? []).some((word) => literalPattern(normalize(word)).test(source)))
+    reasons.push('Запрещённое слово встречи');
   return reasons;
 }

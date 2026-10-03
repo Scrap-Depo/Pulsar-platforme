@@ -10,7 +10,7 @@ import {
   text,
   fail,
 } from './domain.mjs';
-import { filterReasons } from './content-filter.mjs';
+import { filterReasons, contentPolicy } from './content-filter.mjs';
 
 const now = () => new Date().toISOString();
 const value = (snap) => (snap.exists ? snap.data() : null);
@@ -70,6 +70,7 @@ export function createService(db, onSubmitTiming = () => {}) {
             version: 1,
             createdAt: now(),
             retention: 'until-owner-deletes',
+            contentPolicy: contentPolicy(),
           };
           tx.create(mref, meeting);
           tx.create(cref, { sessionId: sid });
@@ -203,6 +204,7 @@ export function createService(db, onSubmitTiming = () => {}) {
         platform: 'Пульсар — платформа интерактивных опросов',
         title: meeting.title,
         exportedAt: now(),
+        joinedCount: (await mref.collection('members').get()).size,
         rounds: exported,
       };
     }
@@ -254,11 +256,9 @@ export function createService(db, onSubmitTiming = () => {}) {
           if ((old?.revision ?? 0) !== input.revision)
             fail('Ответ уже изменён. Обновите его перед повторной отправкой.');
           const answer = responseValue(round.slide, input.value);
-          const reasons =
-            ['open-answers', 'word-cloud'].includes(round.slide.type) &&
-            round.settings.contentFilter !== false
-              ? filterReasons(answer)
-              : [];
+          const reasons = ['open-answers', 'word-cloud'].includes(round.slide.type)
+            ? filterReasons(answer, meeting.contentPolicy, round.settings.contentFilter !== false)
+            : [];
           const response = {
             id,
             roundId: rid,
@@ -316,6 +316,12 @@ export function createService(db, onSubmitTiming = () => {}) {
     return db.runTransaction(async (tx) => {
       const meeting = required(await tx.get(mref), 'Встреча удалена или недоступна.');
       active(meeting);
+      if (action === 'contentPolicy') {
+        owner(meeting, uid);
+        const policy = contentPolicy(input.policy);
+        tx.update(mref, { contentPolicy: policy });
+        return { policy };
+      }
       if (action === 'save') {
         owner(meeting, uid);
         if (input.version !== meeting.version)

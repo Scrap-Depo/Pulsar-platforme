@@ -112,7 +112,7 @@ test('question toolbar preserves edits, order and the saved meeting name', async
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
   const screenAction = host.getByRole('link', { name: 'Открыть экран просмотра', exact: true });
   await expect(screenAction).toBeVisible();
-  await expect(host.getByRole('tablist').getByRole('tab')).toHaveCount(2);
+  await expect(host.getByRole('tablist').getByRole('tab')).toHaveCount(3);
   const screenBounds = (await screenAction.boundingBox())!;
   const tabsBounds = (await host.getByRole('tablist').boundingBox())!;
   expect(screenBounds.y).toBeGreaterThanOrEqual(tabsBounds.y + tabsBounds.height);
@@ -172,7 +172,9 @@ test('host, two mobile participants and projector following the current question
   await preview.getByLabel('Показать вымышленные ответы для примера').uncheck();
   await expect(preview.getByText(/команда/i)).toHaveCount(0);
   await preview.getByRole('button', { name: 'Экран участника' }).click();
-  const link = await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href');
+  const link = await host
+    .getByRole('link', { name: 'Вход участника', includeHidden: true })
+    .getAttribute('href');
   const projectorLink = await host
     .getByRole('link', { name: 'Открыть экран просмотра' })
     .getAttribute('href');
@@ -205,7 +207,9 @@ test('host, two mobile participants and projector following the current question
       .getByRole('button', { name: 'Отправлено', exact: true })
       .or(p2.getByText('Ответ отправлен.', { exact: true })),
   ).toBeVisible();
-  await p2.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
+  await p2
+    .getByRole('button', { name: /^(Изменить мой ответ|Изменить мои карточки)$/, exact: true })
+    .click();
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Изменённая формулировка');
   await expect(p2.getByRole('button', { name: 'Обновить ответ', exact: true })).toBeEnabled();
   await p2.getByLabel('Ваш ответ', { exact: true }).fill('Ответ другого участника');
@@ -371,7 +375,11 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
     .click();
   const pc = await browser.newContext({ viewport: { width: 360, height: 740 } });
   const p = await pc.newPage();
-  await p.goto((await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!);
+  await p.goto(
+    (await host
+      .getByRole('link', { name: 'Вход участника', includeHidden: true })
+      .getAttribute('href'))!,
+  );
   await p.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await expect(p.getByRole('heading', { name: 'Какой вариант выбрать?' }).first()).toBeVisible();
   await p.getByRole('radio').first().check();
@@ -429,7 +437,9 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(host.getByRole('tab', { name: 'Подготовка', exact: true })).toBeVisible();
   expect(host.url()).toBe(url);
-  const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
+  const link = (await host
+    .getByRole('link', { name: 'Вход участника', includeHidden: true })
+    .getAttribute('href'))!;
   const code = new URL(link).searchParams.get('code')!;
   await host.getByRole('tab', { name: 'История', exact: true }).click();
   await host.getByText('Удалить встречу и все ответы', { exact: true }).click();
@@ -671,7 +681,9 @@ test('history charts use reviewed text and closed question exports work during a
   await host.getByLabel('Одобрять свободный текст перед публикацией').check();
   await saveQuestion(host);
   await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
-  const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
+  const link = (await host
+    .getByRole('link', { name: 'Вход участника', includeHidden: true })
+    .getAttribute('href'))!;
   const firstContext = await browser.newContext();
   const secondContext = await browser.newContext();
   const first = await firstContext.newPage();
@@ -869,7 +881,9 @@ test('text answers show immediately with moderation off by default', async ({ br
   const participantContext = await browser.newContext();
   const participant = await participantContext.newPage();
   await participant.goto(
-    (await host.getByRole('link', { name: 'Вход участника', exact: true }).getAttribute('href'))!,
+    (await host
+      .getByRole('link', { name: 'Вход участника', exact: true, includeHidden: true })
+      .getAttribute('href'))!,
   );
   await participant.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await participant.getByLabel('Ваш ответ', { exact: true }).fill('Сразу на экран');
@@ -903,7 +917,7 @@ test('reflection template shows others cards after answering and allows only oth
   await saveQuestion(host);
   await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
   const link = (await host
-    .getByRole('link', { name: 'Вход участника', exact: true })
+    .getByRole('link', { name: 'Вход участника', exact: true, includeHidden: true })
     .getAttribute('href'))!;
   const projector = await context.newPage();
   await projector.goto(
@@ -1042,7 +1056,9 @@ test('host controls published cards directly, switches moderation live and revie
   const participantContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const participant = await participantContext.newPage();
   await participant.goto(
-    (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!,
+    (await host
+      .getByRole('link', { name: 'Вход участника', includeHidden: true })
+      .getAttribute('href'))!,
   );
   await participant.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await participant.getByLabel('Ваш ответ', { exact: true }).fill('Поддержка команды');
@@ -1069,7 +1085,9 @@ test('host controls published cards directly, switches moderation live and revie
   await expect(directCard).toBeVisible();
   await host.getByLabel('Модерация ответов', { exact: true }).click();
   await expect(host.getByLabel('Модерация ответов', { exact: true })).toBeChecked();
-  await participant.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
+  await participant
+    .getByRole('button', { name: /^(Изменить мой ответ|Изменить мои карточки)$/, exact: true })
+    .click();
   await participant.getByLabel('Ваш ответ', { exact: true }).fill('Новая полезная идея');
   await participant.getByRole('button', { name: 'Обновить ответ', exact: true }).click();
   await expect(stage.getByText('Новая полезная идея', { exact: true })).toHaveCount(0);
@@ -1079,7 +1097,9 @@ test('host controls published cards directly, switches moderation live and revie
   await expect(
     stage.getByRole('button', { name: 'Действия с карточкой: Новая полезная идея', exact: true }),
   ).toBeVisible();
-  await participant.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
+  await participant
+    .getByRole('button', { name: /^(Изменить мой ответ|Изменить мои карточки)$/, exact: true })
+    .click();
   await participant.getByLabel('Ваш ответ', { exact: true }).fill('Обсудим президента');
   await participant.getByRole('button', { name: 'Обновить ответ', exact: true }).click();
   await expect(management.getByText('Фильтр: Политическая тема', { exact: true })).toBeVisible();
@@ -1099,4 +1119,102 @@ test('host controls published cards directly, switches moderation live and revie
   await expect(host.getByLabel('Фильтр чувствительных тем', { exact: true })).toBeChecked();
   await participantContext.close();
   await context.close();
+});
+
+test('whole-meeting PDF download and custom meeting filter rules work through the host UI', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  const errors = [];
+  host.on('pageerror', (e) => errors.push(e.message));
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`report-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-meeting-report-password');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await host.getByLabel('Название встречи', { exact: true }).fill('Проверка PDF и фильтра');
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Выбор направления');
+  await host.getByLabel('Вариант 1', { exact: true }).fill('Развитие');
+  await host.getByLabel('Вариант 2', { exact: true }).fill('Поддержка');
+  await host.getByRole('button', { name: 'Открытые ответы', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Что обсудим?');
+  await host
+    .getByRole('combobox', { name: 'Карточек на участника', exact: true })
+    .selectOption('3');
+  await saveQuestion(host);
+  const filter = host.locator('details.meeting-filter-settings');
+  await filter.locator('summary').click();
+  await host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }).fill('кот');
+  await host
+    .getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true })
+    .fill('президент компании');
+  await host.getByRole('button', { name: 'Сохранить фильтр встречи', exact: true }).click();
+  await expect(
+    host.getByRole('button', { name: 'Сохранить фильтр встречи', exact: true }),
+  ).toBeDisabled();
+  await host.reload();
+  await filter.locator('summary').click();
+  await expect(
+    host.getByRole('textbox', { name: 'Запрещённые слова и фразы', exact: true }),
+  ).toHaveValue('кот');
+  await expect(
+    host.getByRole('textbox', { name: 'Исключения для политического фильтра', exact: true }),
+  ).toHaveValue('президент компании');
+  await filter.locator('summary').click();
+  await host.getByRole('button', { name: '1. Выбор направления', exact: true }).click();
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  const code = (await host.locator('.status-panel .join-code').innerText()).replace(/\s/g, '');
+  const pc = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p = await pc.newPage();
+  await p.goto(new URL('/participant?code=' + code, host.url()).href);
+  await p.getByRole('button', { name: 'Подключиться', exact: true }).click();
+  await p.getByRole('radio', { name: 'Развитие', exact: true }).check();
+  await p.getByRole('button', { name: 'Отправить', exact: true }).click();
+  await expect(p.getByRole('button', { name: 'Отправлено', exact: true })).toBeDisabled();
+  await host.getByRole('button', { name: 'Далее', exact: true }).click();
+  await p.getByLabel('Ваш ответ', { exact: true }).fill('Обсудим политику компании');
+  await p.getByRole('button', { name: 'Отправить', exact: true }).click();
+  await expect(
+    host.locator('.projector-same-question').getByRole('button', {
+      name: 'Действия с карточкой: Обсудим политику компании',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await p.getByRole('button', { name: 'Добавить ещё одну карточку', exact: true }).click();
+  await p.getByLabel('Ваш ответ', { exact: true }).fill('кот');
+  await p.getByRole('button', { name: 'Отправить', exact: true }).click();
+  await expect(host.getByText('Фильтр: Запрещённое слово встречи', { exact: true })).toBeVisible();
+  await expect(
+    host.locator('.projector-same-question').getByText('кот', { exact: true }),
+  ).toHaveCount(0);
+  await host.getByText('Завершение встречи', { exact: true }).click();
+  host.once('dialog', (d) => void d.accept());
+  await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
+  for (const [internal, path] of [
+    [false, '/private/tmp/pulsar-meeting-report.pdf'],
+    [true, '/private/tmp/pulsar-meeting-report-internal.pdf'],
+  ]) {
+    const include = host.getByLabel(
+      'Включить в PDF исходные, скрытые и ожидающие ответы (только для ведущего)',
+      { exact: true },
+    );
+    if (internal) await include.check();
+    const downloading = host.waitForEvent('download');
+    await host.getByRole('button', { name: 'Скачать PDF-отчёт встречи', exact: true }).click();
+    const downloaded = await downloading;
+    await downloaded.saveAs(path);
+    const pdf = await readFile(path);
+    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.length).toBeGreaterThan(10000);
+    await expect(
+      host.getByRole('button', { name: 'Скачать PDF-отчёт встречи', exact: true }),
+    ).toBeEnabled();
+  }
+  expect(errors).toEqual([]);
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await Promise.all([context.close(), pc.close()]);
 });
