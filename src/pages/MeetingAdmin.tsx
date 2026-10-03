@@ -33,6 +33,10 @@ import {
   Gauge,
   MessageSquare,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
@@ -152,6 +156,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const [historyId, setHistoryId] = useState('');
   const [openRequest, setOpenRequest] = useState<string | null>(null);
   const [tab, setTab] = useState<HostTab | null>(null);
+  const [selectedCard, setSelectedCard] = useState<{ roundId: string; id: string } | null>(null);
   const online = useOnline();
   useEffect(() => {
     if (meeting.data && !dirty)
@@ -219,6 +224,10 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   const m = meeting.data,
     current = draft.slides.find((s) => s.id === draft.currentSlideId) ?? draft.slides[0];
   const round = room.data?.round;
+  const card =
+    selectedCard?.roundId === round?.id
+      ? responses.data.find((response) => response.id === selectedCard?.id)
+      : undefined;
   const finished = ['finished', 'deleting'].includes(m.status);
   const view: HostTab = tab ?? (finished ? 'results' : round ? 'live' : 'prepare');
   const status = finished
@@ -299,7 +308,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
   function setConfig(settings: RoundSettings) {
     slideChange({ ...current, launch: settings });
   }
-  const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''} · ${config.showOnPhones ? 'результаты на телефонах включены' : 'результаты на телефонах выключены'}`;
+  const launchSummary = `${slideTypes.find(([type]) => type === current.type)?.[1]} · ${current.type === 'open-answers' ? `${launchSettings.cardLimit} ответ(а) на участника` : current.type === 'multiple-choice' ? 'один вариант ответа' : 'один ответ'} · ${config.immediate ? 'результаты во время сбора' : 'результаты после команды ведущего'}${launchSettings.moderation ? ' · текст после одобрения' : ''}${isText && config.contentFilter !== false ? ' · фильтр чувствительных тем включён' : ''} · ${config.showOnPhones ? 'результаты на телефонах включены' : 'результаты на телефонах выключены'}`;
   async function applyAppearance(slide: SessionSlide) {
     if (dirty || !round) return;
     const ok = await run('save', {
@@ -337,7 +346,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         >
           Мои встречи
         </button>
-        <a href={joinLink} target="_blank" rel="noreferrer">
+        <a className="quiet-link" href={joinLink} target="_blank" rel="noreferrer">
           Вход участника
         </a>
         <button
@@ -428,6 +437,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           </div>
         )}
         <a className="projector-open-action" href={projectorLink} target="_blank" rel="noreferrer">
+          <ExternalLink size={18} aria-hidden="true" />
           Открыть экран просмотра
         </a>
       </div>
@@ -436,6 +446,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           <LiveQuestionRail
             slides={draft.slides}
             liveId={round?.slide.id}
+            doneIds={rounds.data.map((r) => r.slide.id)}
             disabled={busy || !online}
             onLaunch={launchFromLive}
             error={navigationError}
@@ -468,6 +479,11 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       : 'Результаты скрыты от участников'}
                   </span>
                 </div>
+                {joined > 0 && (
+                  <p className="big-stat" aria-hidden="true">
+                    <strong>{answered}</strong> из {Math.max(joined, answered)} ответили
+                  </p>
+                )}
                 <p>Ответов: {responses.data.length}.</p>
                 {joined === 0 ? (
                   <p>Участники ещё не подключились.</p>
@@ -502,7 +518,10 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     </div>
                   </>
                 )}
-                <h3>Сейчас на проекторе</h3>
+                <h3>Так видит зал</h3>
+                {round.slide.type === 'open-answers' && published.data.length > 0 && (
+                  <small>Нажмите на текст карточки, чтобы скрыть или удалить её.</small>
+                )}
                 <div className="projector-same-question">
                   {!round.visible ? (
                     <p>На экране проектора только вопрос.</p>
@@ -510,6 +529,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     <LiveResults
                       round={round}
                       results={published.data}
+                      onResponseSelect={(id) => setSelectedCard({ roundId: round.id, id })}
                       emptyMessage={
                         responses.loaded && responses.data.length === 0
                           ? 'На этот вопрос ещё никто не ответил.'
@@ -527,6 +547,40 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
               </section>
               <aside className="card live-controls" aria-label="Пульт ведущего">
                 <h2>Управление вопросом</h2>
+                {['open-answers', 'word-cloud'].includes(round.slide.type) && (
+                  <fieldset disabled={busy || !online} className="live-moderation-settings">
+                    <label className="choice">
+                      <input
+                        type="checkbox"
+                        checked={round.settings.moderation}
+                        onChange={(e) =>
+                          void run('moderationSettings', {
+                            roundId: round.id,
+                            moderation: e.target.checked,
+                          })
+                        }
+                      />
+                      Модерация ответов
+                    </label>
+                    <label className="choice">
+                      <input
+                        type="checkbox"
+                        checked={round.settings.contentFilter !== false}
+                        onChange={(e) =>
+                          void run('moderationSettings', {
+                            roundId: round.id,
+                            moderation: round.settings.moderation,
+                            contentFilter: e.target.checked,
+                          })
+                        }
+                      />
+                      Фильтр чувствительных тем
+                    </label>
+                    <small>
+                      Подозрительные ответы ждут одобрения. Фильтр по словам может ошибаться.
+                    </small>
+                  </fieldset>
+                )}
                 {round.phase === 'open' && (
                   <button
                     disabled={busy || !online}
@@ -535,18 +589,20 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     Завершить сбор ответов
                   </button>
                 )}
-                <details className="presenter-tools">
-                  <summary>Дополнительное управление</summary>
-                  <fieldset disabled={busy || !online} className="section-stack">
-                    {!round.visible && (
-                      <button
-                        className="primary-action"
-                        onClick={() => void run('reveal', { roundId: round.id })}
-                      >
-                        Показать результаты
-                      </button>
-                    )}
-                    {round.visible && round.slide.type === 'open-answers' && (
+                <fieldset disabled={busy || !online} className="section-stack live-quick-actions">
+                  {!round.visible && (
+                    <button
+                      className="primary-action"
+                      onClick={() => void run('reveal', { roundId: round.id })}
+                    >
+                      Показать результаты
+                    </button>
+                  )}
+                  {round.visible && round.slide.type === 'open-answers' && (
+                    <div className="likes-control">
+                      <p className={`likes-state${round.likesOpen ? ' on' : ''}`}>
+                        Лайки: {round.likesOpen ? 'открыты' : 'закрыты'}
+                      </p>
                       <button
                         onClick={() =>
                           void run('likes', { enabled: !round.likesOpen, roundId: round.id })
@@ -554,8 +610,11 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       >
                         {round.likesOpen ? 'Закрыть лайки' : 'Открыть лайки'}
                       </button>
-                    )}
-                  </fieldset>
+                    </div>
+                  )}
+                </fieldset>
+                <details className="presenter-tools">
+                  <summary>Дополнительное управление</summary>
                   {round.phase === 'open' && (
                     <Timer
                       round={round}
@@ -749,11 +808,12 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                       <select
                         value={config.cardLimit}
                         onChange={(e) =>
-                          setConfig({ ...config, cardLimit: Number(e.target.value) as 1 | 3 })
+                          setConfig({ ...config, cardLimit: Number(e.target.value) as 1 | 3 | 5 })
                         }
                       >
                         <option value={1}>1</option>
                         <option value={3}>3</option>
+                        <option value={5}>5</option>
                       </select>
                     </label>
                   )}
@@ -765,6 +825,16 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                         onChange={(e) => setConfig({ ...config, moderation: e.target.checked })}
                       />
                       Одобрять свободный текст перед публикацией
+                    </label>
+                  )}
+                  {isText && (
+                    <label className="choice">
+                      <input
+                        type="checkbox"
+                        checked={config.contentFilter !== false}
+                        onChange={(e) => setConfig({ ...config, contentFilter: e.target.checked })}
+                      />
+                      Проверять мат, угрозы и политические темы перед показом
                     </label>
                   )}
                   <label>
@@ -789,7 +859,9 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                     Показывать результаты на телефонах участников
                   </label>
                   {isText && !config.moderation && (
-                    <small>Без модерации ответы показываются сразу.</small>
+                    <small>
+                      Без модерации ответы показываются сразу; отмеченные фильтром ждут одобрения.
+                    </small>
                   )}
                   <small>Эти настройки применятся при запуске выбранного вопроса.</small>
                 </fieldset>
@@ -889,17 +961,76 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           </section>
         </div>
       )}
-      {view === 'live' && round && !finished && round.settings.moderation && (
-        <Moderation
-          responses={responses.data}
-          busy={busy || !online}
-          onAction={(params) =>
-            void run('moderate', {
-              ...params,
-              revisions: Object.fromEntries(responses.data.map((r) => [r.id, r.revision])),
-            })
-          }
-        />
+      {view === 'live' &&
+        round &&
+        !finished &&
+        ['open-answers', 'word-cloud'].includes(round.slide.type) && (
+          <Moderation
+            responses={responses.data}
+            busy={busy || !online}
+            onSelect={(id) => setSelectedCard({ roundId: round.id, id })}
+            onAction={(params) =>
+              void run('moderate', {
+                ...params,
+                roundId: round.id,
+                revisions: Object.fromEntries(responses.data.map((r) => [r.id, r.revision])),
+              })
+            }
+          />
+        )}
+      {card && round && view === 'live' && !finished && (
+        <Modal>
+          <h3>Карточка участника</h3>
+          <p className="host-card-text">{card.displayValue ?? card.value}</p>
+          {!!card.filterReasons?.length && (
+            <p>
+              Фильтр: {card.filterReasons.join(', ')}. Это повод проверить текст, а не окончательная
+              оценка.
+            </p>
+          )}
+          <div className="button-row">
+            <button
+              disabled={busy || !online}
+              onClick={() =>
+                void run('moderate', {
+                  roundId: round.id,
+                  ids: [card.id],
+                  revisions: { [card.id]: card.revision },
+                  status: card.moderation === 'approved' ? 'hidden' : 'approved',
+                }).then((ok) => {
+                  if (ok) setSelectedCard(null);
+                })
+              }
+            >
+              {card.moderation === 'approved' ? 'Скрыть карточку' : 'Опубликовать карточку'}
+            </button>
+            <button
+              className="danger"
+              disabled={busy || !online}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Удалить карточку без возможности восстановления? Текст и лайки будут удалены, повторная отправка этой карточки заблокирована.',
+                  )
+                )
+                  void run('deleteResponse', {
+                    roundId: round.id,
+                    responseId: card.id,
+                    revision: card.revision,
+                  }).then((ok) => {
+                    if (ok) setSelectedCard(null);
+                  });
+              }}
+            >
+              Удалить карточку
+            </button>
+            <button autoFocus disabled={busy} onClick={() => setSelectedCard(null)}>
+              Закрыть
+            </button>
+          </div>
+          <p>Скрытая карточка остаётся в истории и может быть опубликована снова.</p>
+          {error && <p role="alert">{error}</p>}
+        </Modal>
       )}
       {round && finished && view === 'results' && (
         <section className="card">
@@ -1185,10 +1316,12 @@ function Moderation({
   responses,
   busy,
   onAction,
+  onSelect,
 }: {
   responses: Response[];
   busy: boolean;
   onAction: (params: Record<string, unknown>) => void;
+  onSelect: (id: string) => void;
 }) {
   const texts = responses.filter((r) => ['open-answers', 'word-cloud'].includes(r.type));
   const [selected, setSelected] = useState<string[]>([]);
@@ -1196,9 +1329,13 @@ function Moderation({
   const [editing, setEditing] = useState<{ id: string; text: string; revision: number } | null>(
     null,
   );
-  if (!texts.length) return null;
   const count = (status: string) => texts.filter((r) => r.moderation === status).length;
   const pending = texts.filter((r) => r.moderation === 'pending');
+  const [expanded, setExpanded] = useState(pending.length > 0);
+  useEffect(() => {
+    if (pending.length > 0) setExpanded(true);
+  }, [pending.length]);
+  if (!texts.length) return null;
   const filter: ModerationFilter = filterChoice ?? (pending.length ? 'pending' : 'all');
   const visible = filter === 'all' ? texts : texts.filter((r) => r.moderation === filter);
   const filters: [ModerationFilter, string, number][] = [
@@ -1212,8 +1349,12 @@ function Moderation({
     setSelected([]);
   };
   return (
-    <section className="card moderation">
-      <h2>Модерация ответов</h2>
+    <details
+      className="card moderation"
+      open={expanded}
+      onToggle={(e) => setExpanded(e.currentTarget.open)}
+    >
+      <summary>Управление карточками · На проверке: {pending.length}</summary>
       <div className="host-tabs" role="group" aria-label="Фильтр ответов">
         {filters.map(([key, label, n]) => (
           <button
@@ -1273,6 +1414,7 @@ function Moderation({
                   : 'Скрыто'}
             </label>
             <p>{r.displayValue ?? r.value}</p>
+            {!!r.filterReasons?.length && <small>Фильтр: {r.filterReasons.join(', ')}</small>}
             {r.displayValue && (
               <details>
                 <summary>Оригинал участника</summary>
@@ -1280,6 +1422,9 @@ function Moderation({
               </details>
             )}
             <div className="button-row">
+              <button disabled={busy} onClick={() => onSelect(r.id)}>
+                Действия с карточкой
+              </button>
               <button
                 disabled={busy}
                 onClick={() =>
@@ -1338,7 +1483,7 @@ function Moderation({
           </div>
         </Modal>
       )}
-    </section>
+    </details>
   );
 }
 function Countdown({ deadline }: { deadline: string }) {
@@ -1422,12 +1567,14 @@ function removeDrafts(sessionId: string) {
 function LiveQuestionRail({
   slides,
   liveId,
+  doneIds,
   disabled,
   onLaunch,
   error,
 }: {
   slides: SessionSlide[];
   liveId?: string;
+  doneIds: string[];
   disabled: boolean;
   onLaunch: (slide: SessionSlide) => Promise<void>;
   error: string;
@@ -1465,20 +1612,30 @@ function LiveQuestionRail({
   }, [disabled, previous, next, onLaunch]);
   return (
     <section className="card live-question-rail" aria-label="Вопросы показа">
-      <div className="button-row">
+      <div className="rail-controls">
         <button
-          className="primary-action"
+          className="rail-back"
+          aria-label="Назад"
           disabled={disabled || !previous}
           onClick={() => previous && void onLaunch(previous)}
         >
-          Назад
+          <ChevronLeft size={22} aria-hidden="true" />
+          <span>Назад</span>
         </button>
+        <p className="rail-position">
+          {index >= 0 ? `Вопрос ${index + 1} из ${slides.length}` : 'Выберите вопрос'}
+          <small>Стрелки ← → на клавиатуре</small>
+        </p>
         <button
-          className="primary-action"
+          className="primary-action rail-next"
+          aria-label="Далее"
           disabled={disabled || !next}
           onClick={() => next && void onLaunch(next)}
         >
-          Далее
+          <span className="rail-next-label">
+            Далее <ChevronRight size={22} aria-hidden="true" />
+          </span>
+          {next && <small aria-hidden="true">{next.title || 'Без названия'}</small>}
         </button>
       </div>
       <div className="question-strip">
@@ -1489,6 +1646,7 @@ function LiveQuestionRail({
               key={slide.id}
               aria-label={`Запустить вопрос ${i + 1}: ${slide.title || 'Без названия'}`}
               aria-pressed={slide.id === liveId}
+              className={doneIds.includes(slide.id) && slide.id !== liveId ? 'is-done' : undefined}
               disabled={disabled}
               onClick={() => void onLaunch(slide)}
             >
@@ -1496,6 +1654,13 @@ function LiveQuestionRail({
               <span>
                 {i + 1} · {slide.title || 'Без названия'}
               </span>
+              {slide.id === liveId ? (
+                <em className="strip-state live">идёт</em>
+              ) : doneIds.includes(slide.id) ? (
+                <em className="strip-state">
+                  <Check size={14} aria-hidden="true" /> показан
+                </em>
+              ) : null}
             </button>
           );
         })}

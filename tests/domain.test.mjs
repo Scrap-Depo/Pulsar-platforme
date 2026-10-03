@@ -137,6 +137,15 @@ test('slide allowlist strips arbitrary fields and launch settings are safe and t
   }
 });
 
+test('card limit accepts only 1, 3 or 5', () => {
+  const limit = (cardLimit) =>
+    validSlide({ id: 's', title: '', type: 'open-answers', launch: { cardLimit } }).launch.cardLimit;
+  assert.equal(limit(5), 5);
+  assert.equal(limit(3), 3);
+  assert.equal(limit(4), 1);
+  assert.equal(limit(6), 1);
+});
+
 test('readable new codes omit ambiguous characters and phone results default off', () => {
   for (let i = 0; i < 100; i++) assert.match(joinCode(), /^[2345679ACDEFGHJKLMNPQRSTUVWXYZ]{6}$/);
   assert.equal(settings({ showOnPhones: 'true' }).showOnPhones, false);

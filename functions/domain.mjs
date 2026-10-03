@@ -20,10 +20,13 @@ function choice(value, values, fallback) {
 export function settings(input = {}) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   return {
-    cardLimit: source.cardLimit === 3 ? 3 : 1,
+    cardLimit: [3, 5].includes(source.cardLimit) ? source.cardLimit : 1,
     moderation: source.moderation === true,
     immediate: source.immediate === true,
     showOnPhones: source.showOnPhones === true,
+    ...(Object.hasOwn(source, 'contentFilter')
+      ? { contentFilter: source.contentFilter !== false }
+      : {}),
   };
 }
 export function launchSettings(slide, input = slide.launch) {

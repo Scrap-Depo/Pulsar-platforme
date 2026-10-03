@@ -25,6 +25,7 @@ export type Response = PublicResponse & {
   displayValue: string | null;
   createdAt: string;
   updatedAt: string;
+  filterReasons?: string[];
   requestId: string;
   history: Array<{ value: string | number; displayValue: string | null; at: string }>;
 };

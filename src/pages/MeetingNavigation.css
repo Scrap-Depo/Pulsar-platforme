@@ -43,6 +43,34 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.live-shell .host-answer-action {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border-color: transparent;
+  color: inherit;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.live-shell .host-answer-action:hover,
+.live-shell .host-answer-action:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.host-card-text {
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.live-moderation-settings {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+
 @media (max-width: 640px) {
   .host-mode-navigation {
     grid-template-columns: minmax(0, 1fr);

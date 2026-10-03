@@ -1980,3 +1980,43 @@ a {
 
 .audience-view .sent-card .sent-count { margin: 0; font-size: 15px; color: var(--text-muted); }
 .audience-view .sent-card button { width: 100%; min-height: 52px; }
+
+/* Presenter view polish */
+.live-question-rail .rail-controls { display: grid; grid-template-columns: minmax(110px, 1fr) auto minmax(180px, 2fr); gap: 12px; align-items: stretch; margin-bottom: 12px; }
+.live-shell .rail-back { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 64px; background: transparent; }
+.live-shell .rail-next { display: grid; place-items: center; align-content: center; gap: 2px; min-height: 64px; font-size: 1.25rem; }
+.rail-next-label { display: inline-flex; align-items: center; gap: 6px; }
+.live-shell .rail-next small { font-size: 13px; font-weight: 400; opacity: .85; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-question-rail .rail-position { display: grid; align-content: center; justify-items: center; margin: 0; font-weight: 700; white-space: nowrap; }
+.live-question-rail .rail-position small { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+.question-strip button.is-done { opacity: .8; }
+.strip-state { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-style: normal; color: var(--text-muted); border: 1px solid var(--border-soft); }
+.strip-state.live { color: var(--ok-text); background: var(--ok-bg); border-color: var(--ok); font-weight: 700; }
+.big-stat { margin: 8px 0 0; font-size: 1.1rem; color: var(--text-muted); }
+.big-stat strong { font-size: 2.4rem; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.live-stage .big-stat ~ p { font-size: 14px; color: var(--text-muted); margin: 2px 0; }
+.likes-control { display: grid; gap: 8px; }
+.likes-state { margin: 0; font-weight: 700; color: var(--text-muted); }
+.likes-state.on { color: var(--ok-text); }
+.live-shell .quiet-link { color: var(--text-muted); font-size: 14px; }
+.live-shell .projector-open-action { gap: 8px; }
+.live-shell details.meeting-end { background: transparent; border: 0; padding: 0; margin-top: 8px; text-align: right; }
+.live-shell details.meeting-end > summary { display: inline-block; cursor: pointer; font-size: 14px; color: var(--danger); }
+.live-shell details.meeting-end[open] { text-align: left; }
+@media (max-width: 640px) { .live-question-rail .rail-controls { grid-template-columns: 1fr 1fr; } .live-question-rail .rail-position { grid-column: 1 / -1; order: -1; } }
+
+/* Projector pulse */
+@keyframes count-bump { 0% { transform: scale(1); } 35% { transform: scale(1.12); color: var(--accent); } 100% { transform: scale(1); } }
+@keyframes leader-glow { 0%, 100% { box-shadow: 0 0 0 2px var(--tone), 0 16px 40px rgba(2, 6, 23, .5); } 50% { box-shadow: 0 0 0 4px var(--tone), 0 0 36px color-mix(in srgb, var(--tone) 55%, transparent); } }
+@keyframes qr-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(103, 232, 249, .0); } 50% { box-shadow: 0 0 24px 4px rgba(103, 232, 249, .35); } }
+.projector-view .projector-title { flex: 1; min-width: 0; }
+.projector-view .projector-title h2 { margin: 0 0 8px; }
+.projector-view .live-indicator { display: inline-flex; align-items: center; gap: .5em; margin: 0; padding: 6px 16px; border-radius: 999px; font-size: clamp(16px, 1.3vw, 24px); font-weight: 700; color: var(--ok-text); background: var(--ok-bg); border: 1px solid var(--ok); }
+.projector-view .live-indicator .pulse-dot { margin: 0; background: var(--ok); animation: live-ripple 1.6s ease-out infinite; }
+.projector-view .live-indicator.paused { color: var(--text-muted); background: var(--surface); border-color: var(--border-soft); }
+.projector-view .live-indicator.paused .pulse-dot { background: var(--text-muted); animation: none; }
+@keyframes live-ripple { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, .7); } 70% { box-shadow: 0 0 0 .7em rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+.projector-view .result-summary { display: inline-block; animation: count-bump .6s ease-out; transform-origin: left center; }
+.projector-view .answer-card.is-leader { animation: card-in .45s ease-out both, leader-glow 2.6s ease-in-out .5s infinite; }
+.projector-view .join-qr-corner { animation: qr-breathe 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .projector-view .live-indicator .pulse-dot, .projector-view .result-summary, .projector-view .answer-card.is-leader, .projector-view .join-qr-corner { animation: none !important; } }

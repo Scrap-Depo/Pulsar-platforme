@@ -5,10 +5,14 @@ export function questionLaunchSettings(slide: SessionSlide): LaunchSettings {
   const text = ['open-answers', 'word-cloud'].includes(slide.type);
   const moderation = text && input?.moderation === true;
   return {
-    cardLimit: slide.type === 'open-answers' && input?.cardLimit === 3 ? 3 : 1,
+    cardLimit:
+      slide.type === 'open-answers' && (input?.cardLimit === 3 || input?.cardLimit === 5)
+        ? input.cardLimit
+        : 1,
     moderation,
     immediate: text && !moderation ? true : input?.immediate !== false,
     showOnPhones: input?.showOnPhones === true,
+    contentFilter: text && input?.contentFilter !== false,
   };
 }
 

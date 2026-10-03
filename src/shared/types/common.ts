@@ -3,17 +3,19 @@ import { PulseProjectorView } from '../../features/pulse/model/types';
 
 export type AppScreen = 'admin' | 'participant';
 
-export type SlideType =
-  | 'multiple-choice'
-  | 'open-answers'
-  | 'pulse'
-  | 'word-cloud';
+export type SlideType = 'multiple-choice' | 'open-answers' | 'pulse' | 'word-cloud';
 
 export type ModuleId = SlideType;
 
 export type SessionStatus = 'draft' | 'live' | 'finished';
 
-export type LaunchSettings = { cardLimit: 1 | 3; moderation: boolean; immediate: boolean; showOnPhones?: boolean };
+export type LaunchSettings = {
+  cardLimit: 1 | 3 | 5;
+  moderation: boolean;
+  immediate: boolean;
+  showOnPhones?: boolean;
+  contentFilter?: boolean;
+};
 
 type BaseSlide = {
   id: string;
@@ -58,10 +60,7 @@ export type WordCloudSessionSlide = BaseSlide & {
 };
 
 export type SessionSlide =
-  | MultipleChoiceSessionSlide
-  | OpenAnswersSessionSlide
-  | PulseSessionSlide
-  | WordCloudSessionSlide;
+  MultipleChoiceSessionSlide | OpenAnswersSessionSlide | PulseSessionSlide | WordCloudSessionSlide;
 
 export type Session = {
   id: string;
@@ -107,9 +106,6 @@ export type WordCloudResponse = BaseResponse & {
 };
 
 export type SessionResponse =
-  | MultipleChoiceResponse
-  | OpenAnswersResponse
-  | PulseResponse
-  | WordCloudResponse;
+  MultipleChoiceResponse | OpenAnswersResponse | PulseResponse | WordCloudResponse;
 
 export type LiveModule = SlideType | null;

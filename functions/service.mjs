@@ -10,6 +10,7 @@ import {
   text,
   fail,
 } from './domain.mjs';
+import { filterReasons } from './content-filter.mjs';
 
 const now = () => new Date().toISOString();
 const value = (snap) => (snap.exists ? snap.data() : null);
@@ -219,17 +220,19 @@ export function createService(db, onSubmitTiming = () => {}) {
           // membership and revision checks retain their atomic guarantees.
           attempts++;
           const readStarted = performance.now();
-          const [msnap, rsnap, member, previous] = await tx.getAll(
+          const [msnap, rsnap, member, previous, removed] = await tx.getAll(
             mref,
             rref,
             mref.collection('members').doc(uid),
             ref,
+            rref.collection('removed').doc(id),
           );
           readMs += performance.now() - readStarted;
           const meeting = required(msnap, 'Встреча удалена или недоступна.');
           if (meeting.status === 'deleting') fail('Встреча удаляется.');
           const round = required(rsnap, 'Раунд не найден.');
           if (!member.exists) fail('Сначала подключитесь к встрече.');
+          if (removed.exists) fail('Эта карточка удалена ведущим.');
           const max = round.slide.type === 'open-answers' ? round.settings.cardLimit : 1;
           if (slot >= max) fail('Лимит карточек достигнут.');
           const old = value(previous);
@@ -244,17 +247,26 @@ export function createService(db, onSubmitTiming = () => {}) {
           if (meeting.roundId !== rid || round.phase !== 'open') fail('Приём ответов закрыт.');
           if ((old?.revision ?? 0) !== input.revision)
             fail('Ответ уже изменён. Обновите его перед повторной отправкой.');
+          const answer = responseValue(round.slide, input.value);
+          const reasons =
+            ['open-answers', 'word-cloud'].includes(round.slide.type) &&
+            round.settings.contentFilter !== false
+              ? filterReasons(answer)
+              : [];
           const response = {
             id,
             roundId: rid,
             participantId: uid,
             type: round.slide.type,
             slot,
-            value: responseValue(round.slide, input.value),
+            value: answer,
+            filterReasons: reasons,
             displayValue: null,
             history: old?.history ?? [],
             moderation:
-              ['open-answers', 'word-cloud'].includes(round.slide.type) && round.settings.moderation
+              reasons.length ||
+              (['open-answers', 'word-cloud'].includes(round.slide.type) &&
+                round.settings.moderation)
                 ? 'pending'
                 : 'approved',
             createdAt: old?.createdAt ?? now(),
@@ -409,6 +421,74 @@ export function createService(db, onSubmitTiming = () => {}) {
         return { enabled };
       }
       owner(meeting, uid);
+      if (action === 'deleteResponse') {
+        const id = text(input.responseId, 100);
+        if (!/^[a-f0-9]{64}$/.test(id)) fail('Карточка не найдена.');
+        const ref = rref.collection('responses').doc(id);
+        const [responseSnap, removedSnap] = await tx.getAll(
+          ref,
+          rref.collection('removed').doc(id),
+        );
+        if (removedSnap.exists) return { deleted: true };
+        const response = required(responseSnap, 'Карточка не найдена.');
+        if (!['open-answers', 'word-cloud'].includes(response.type))
+          fail('Можно удалить только текстовую карточку.');
+        if (input.revision !== response.revision) fail('Карточка изменилась. Проверьте её заново.');
+        const privateRef = rref.collection('private').doc(response.participantId);
+        const privateSnap = await tx.get(privateRef);
+        const likes = await tx.get(rref.collection('likes').where('responseId', '==', id));
+        const answers = { ...(privateSnap.data()?.answers ?? {}) };
+        delete answers[response.slot];
+        tx.set(privateRef, { answers });
+        tx.set(rref.collection('removed').doc(id), { slot: response.slot, deletedAt: now() });
+        tx.delete(ref);
+        tx.delete(rref.collection('published').doc(id));
+        for (const like of likes.docs) tx.delete(like.ref);
+        tx.update(roomRef, { frozen: null });
+        return { deleted: true };
+      }
+      if (action === 'moderationSettings') {
+        if (!['open-answers', 'word-cloud'].includes(round.slide.type))
+          fail('Модерация доступна для текстовых вопросов.');
+        if (
+          typeof input.moderation !== 'boolean' ||
+          (input.contentFilter !== undefined && typeof input.contentFilter !== 'boolean')
+        )
+          fail('Некорректные настройки модерации.');
+        const all = await tx.get(rref.collection('responses'));
+        round.settings = {
+          ...round.settings,
+          moderation: input.moderation,
+          contentFilter: input.contentFilter ?? round.settings.contentFilter ?? true,
+        };
+        if (!input.moderation) {
+          round.settings.immediate = true;
+          round.visible = true;
+          if (round.slide.type === 'open-answers') round.likesOpen = true;
+        }
+        for (const snap of all.docs) {
+          const response = snap.data();
+          // Hidden answers and filter holds need an explicit host decision.
+          if (
+            !input.moderation &&
+            response.moderation === 'pending' &&
+            !response.filterReasons?.length
+          ) {
+            response.moderation = 'approved';
+            tx.set(snap.ref, response);
+            tx.set(
+              rref.collection('private').doc(response.participantId),
+              { answers: { [response.slot]: ownResponse(response) } },
+              { merge: true },
+            );
+          }
+          if (round.visible && response.moderation === 'approved')
+            tx.set(rref.collection('published').doc(response.id), publicResponse(response));
+        }
+        tx.set(rref, round);
+        tx.update(roomRef, { round: publicRound(round), frozen: null });
+        return { ok: true };
+      }
       if (action === 'moderate') {
         if (
           !Array.isArray(input.ids) ||

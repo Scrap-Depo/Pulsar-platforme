@@ -120,9 +120,9 @@ export default function QuestionPreview({
             )}
             {slide.type === 'open-answers' && (
               <>
-                {settings.cardLimit === 3 && (
+                {settings.cardLimit > 1 && (
                   <div className="button-row">
-                    {[1, 2, 3].map((i) => (
+                    {Array.from({ length: settings.cardLimit }, (_, i) => i + 1).map((i) => (
                       <button type="button" key={i}>
                         Карточка {i}
                       </button>

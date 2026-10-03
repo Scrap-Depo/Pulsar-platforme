@@ -627,3 +627,91 @@ test('slide navigation restores all saved answers and likes without creating new
     repeated.id,
   );
 });
+
+test('host live moderation, filter holds and permanent card deletion preserve publication boundaries', async () => {
+  const { id: sid, joinCode } = await meeting('live-content-controls');
+  await call('a', 'join', { code: joinCode });
+  await call('b', 'join', { code: joinCode });
+  await call('host-a', 'open', {
+    sessionId: sid,
+    slideId: 'text',
+    requestId: 'controlled',
+    settings: { immediate: true, moderation: false },
+  });
+  const path = `meetings/${sid}/rounds/controlled`;
+  const good = await send('a', sid, 'controlled', 'Поддержка команды');
+  const flagged = await send('b', sid, 'controlled', 'блядь');
+  assert.equal(
+    (await db.doc(`${path}/responses/${flagged.id}`).get()).data().moderation,
+    'pending',
+  );
+  assert.equal((await db.doc(`${path}/published/${flagged.id}`).get()).exists, false);
+  await assert.rejects(
+    call('a', 'moderationSettings', { sessionId: sid, moderation: true }),
+    /Нет доступа ведущего/,
+  );
+  await call('host-a', 'moderationSettings', { sessionId: sid, moderation: true });
+  assert.equal((await db.doc(`${path}/published/${good.id}`).get()).exists, true);
+  const pending = await send('a', sid, 'controlled', 'Обновлённая идея', {
+    revision: 1,
+    requestId: 'edited',
+  });
+  assert.equal((await db.doc(`${path}/published/${good.id}`).get()).exists, false);
+  await call('host-a', 'moderationSettings', { sessionId: sid, moderation: false });
+  assert.equal((await db.doc(`${path}/published/${pending.id}`).get()).exists, true);
+  assert.equal((await db.doc(`${path}/published/${flagged.id}`).get()).exists, false);
+  assert.equal(
+    (await db.doc(`${path}/responses/${flagged.id}`).get()).data().moderation,
+    'pending',
+  );
+  await call('host-a', 'moderate', {
+    sessionId: sid,
+    ids: [good.id],
+    revisions: { [good.id]: 2 },
+    status: 'hidden',
+  });
+  await call('host-a', 'moderationSettings', {
+    sessionId: sid,
+    moderation: false,
+    contentFilter: false,
+  });
+  assert.equal((await db.doc(`${path}/published/${good.id}`).get()).exists, false);
+  assert.equal((await db.doc(`${path}/published/${flagged.id}`).get()).exists, false);
+  await call('host-a', 'moderate', {
+    sessionId: sid,
+    ids: [good.id],
+    revisions: { [good.id]: 2 },
+    status: 'approved',
+  });
+  await call('b', 'like', { sessionId: sid, responseId: good.id, enabled: true });
+  await assert.rejects(
+    call('b', 'deleteResponse', { sessionId: sid, responseId: good.id, revision: 2 }),
+    /Нет доступа ведущего/,
+  );
+  await assert.rejects(
+    call('host-a', 'deleteResponse', { sessionId: sid, responseId: good.id, revision: 1 }),
+    /изменилась/,
+  );
+  await call('host-a', 'deleteResponse', { sessionId: sid, responseId: good.id, revision: 2 });
+  for (const collection of ['responses', 'published'])
+    assert.equal((await db.doc(`${path}/${collection}/${good.id}`).get()).exists, false);
+  assert.equal((await db.doc(`${path}/private/a`).get()).data().answers[0], undefined);
+  assert.equal(
+    (await db.collection(`${path}/likes`).where('responseId', '==', good.id).get()).size,
+    0,
+  );
+  await assert.rejects(
+    send('a', sid, 'controlled', 'Обновлённая идея', { revision: 1, requestId: 'edited' }),
+    /удалена ведущим/,
+  );
+  await assert.rejects(
+    call('b', 'like', { sessionId: sid, responseId: good.id, enabled: true }),
+    /Карточка не найдена/,
+  );
+  await call('host-a', 'close', { sessionId: sid });
+  const exported = await call('host-a', 'export', { sessionId: sid, roundId: 'controlled' });
+  assert.equal(
+    exported.rounds[0].responses.some((r) => r.id === good.id),
+    false,
+  );
+});

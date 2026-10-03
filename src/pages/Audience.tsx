@@ -246,7 +246,13 @@ function Connected({
     return (
       <>
         <div className="projector-head">
-          <h2>{data.title}</h2>
+          <div className="projector-title">
+            <h2>{data.title}</h2>
+            <p className={`live-indicator${round.phase === 'open' ? '' : ' paused'}`} role="status">
+              <span className="pulse-dot" aria-hidden="true" />
+              {round.phase === 'open' ? 'Идёт сбор ответов' : 'Сбор ответов завершён'}
+            </p>
+          </div>
           <aside className="join-qr-corner">
             <JoinQr url={`${location.origin}/participant?code=${joinCode}`} />
             <p>
@@ -331,6 +337,11 @@ function Connected({
             <path d="M15 27l8 8 14-16" />
           </svg>
           <p role="status">Ответ отправлен.</p>
+          {ownAnswers.some((answer) => answer.moderation === 'pending') && (
+            <p className="answer-meta">
+              Ответ ожидает проверки ведущим и пока не показан остальным.
+            </p>
+          )}
           {round.settings.cardLimit > 1 && (
             <p className="sent-count">
               Карточек: {ownAnswers.length} из {round.settings.cardLimit}

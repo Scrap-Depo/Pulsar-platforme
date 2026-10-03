@@ -206,7 +206,7 @@ export function createTemplateSlide(templateId: string, order: number): SessionS
         type: 'open-answers',
         allowLikes: true,
         visualization: 'wall',
-        launch: { cardLimit: 3, moderation: false, immediate: true, showOnPhones: false },
+        launch: { cardLimit: 5, moderation: false, immediate: true, showOnPhones: false },
       };
     default:
       return createSlide('multiple-choice', order);

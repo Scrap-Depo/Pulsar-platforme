@@ -1022,3 +1022,80 @@ test('reflection template shows others cards after answering and allows only oth
   await expect(projector.getByText('Идея второго участника', { exact: true })).toBeVisible();
   await Promise.all([context.close(), firstContext.close(), secondContext.close()]);
 });
+
+test('host controls published cards directly, switches moderation live and reviews filter holds', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const host = await context.newPage();
+  await host.goto('/');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByLabel('Email', { exact: true }).fill(`card-controls-${Date.now()}@example.test`);
+  await host.getByLabel('Пароль', { exact: true }).fill('test-card-controls-password');
+  await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
+  await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
+  await host.getByRole('button', { name: 'Открытые ответы', exact: true }).click();
+  await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Что обсудим сегодня?');
+  await saveQuestion(host);
+  await host.getByRole('button', { name: 'Запустить вопрос', exact: true }).click();
+  const participantContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const participant = await participantContext.newPage();
+  await participant.goto(
+    (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!,
+  );
+  await participant.getByRole('button', { name: 'Подключиться', exact: true }).click();
+  await participant.getByLabel('Ваш ответ', { exact: true }).fill('Поддержка команды');
+  await participant.getByRole('button', { name: 'Отправить', exact: true }).click();
+  const stage = host.locator('.projector-same-question');
+  const directCard = stage.getByRole('button', {
+    name: 'Действия с карточкой: Поддержка команды',
+    exact: true,
+  });
+  await expect(directCard).toBeVisible();
+  await directCard.click();
+  await host
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Скрыть карточку', exact: true })
+    .click();
+  await expect(directCard).toHaveCount(0);
+  const management = host.locator('details.moderation');
+  await management.locator('summary').click();
+  await management.getByRole('button', { name: 'Действия с карточкой', exact: true }).click();
+  await host
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Опубликовать карточку', exact: true })
+    .click();
+  await expect(directCard).toBeVisible();
+  await host.getByLabel('Модерация ответов', { exact: true }).click();
+  await expect(host.getByLabel('Модерация ответов', { exact: true })).toBeChecked();
+  await participant.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
+  await participant.getByLabel('Ваш ответ', { exact: true }).fill('Новая полезная идея');
+  await participant.getByRole('button', { name: 'Обновить ответ', exact: true }).click();
+  await expect(stage.getByText('Новая полезная идея', { exact: true })).toHaveCount(0);
+  await expect(management.getByText('Новая полезная идея', { exact: true })).toBeVisible();
+  await host.getByLabel('Модерация ответов', { exact: true }).click();
+  await expect(host.getByLabel('Модерация ответов', { exact: true })).not.toBeChecked();
+  await expect(
+    stage.getByRole('button', { name: 'Действия с карточкой: Новая полезная идея', exact: true }),
+  ).toBeVisible();
+  await participant.getByRole('button', { name: 'Изменить мой ответ', exact: true }).click();
+  await participant.getByLabel('Ваш ответ', { exact: true }).fill('Обсудим президента');
+  await participant.getByRole('button', { name: 'Обновить ответ', exact: true }).click();
+  await expect(management.getByText('Фильтр: Политическая тема', { exact: true })).toBeVisible();
+  await expect(stage.getByText('Обсудим президента', { exact: true })).toHaveCount(0);
+  await management.getByRole('button', { name: 'Действия с карточкой', exact: true }).click();
+  host.once('dialog', (dialog) => void dialog.accept());
+  await host
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Удалить карточку', exact: true })
+    .click();
+  await expect(management).toHaveCount(0);
+  await host.reload();
+  await expect(host.locator('details.moderation')).toHaveCount(0);
+  await host.setViewportSize({ width: 390, height: 844 });
+  await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  await expect(host.getByLabel('Модерация ответов', { exact: true })).not.toBeChecked();
+  await expect(host.getByLabel('Фильтр чувствительных тем', { exact: true })).toBeChecked();
+  await participantContext.close();
+  await context.close();
+});

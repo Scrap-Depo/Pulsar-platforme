@@ -9,10 +9,12 @@ export default function LiveResults({
   round,
   results,
   emptyMessage = 'Опубликованных ответов пока нет.',
+  onResponseSelect,
 }: {
   round: Round;
   results: PublicResponse[];
   emptyMessage?: string;
+  onResponseSelect?: (id: string) => void;
 }) {
   const slide = round.slide;
   if (!round.visible)
@@ -83,7 +85,9 @@ export default function LiveResults({
   return (
     <section className="live-results answer-wall" data-density={density}>
       <h2>{slide.title}</h2>
-      <p className="result-summary">Опубликовано карточек: {results.length}</p>
+      <p className="result-summary" key={results.length}>
+        Опубликовано карточек: {results.length}
+      </p>
       <div className="answer-grid">
         {ranked.map((r, i) => (
           <article
@@ -91,7 +95,17 @@ export default function LiveResults({
             key={r.id}
           >
             {i === 0 && r.likes > 0 && <span className="leader-badge">Лидирует</span>}
-            <p className="result-answer-text">{r.value}</p>
+            {onResponseSelect ? (
+              <button
+                className="host-answer-action result-answer-text"
+                onClick={() => onResponseSelect(r.id)}
+                aria-label={`Действия с карточкой: ${r.value}`}
+              >
+                {r.value}
+              </button>
+            ) : (
+              <p className="result-answer-text">{r.value}</p>
+            )}
             {r.edited && <small>Отредактировано ведущим</small>}
             <LikeCount count={r.likes} />
           </article>

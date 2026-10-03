@@ -98,7 +98,7 @@ function SlotForm({
       ? normalized(value) === normalized(confirmed)
       : !!saved && normalized(value) === normalized(saved.value);
   const sentMessage =
-    round.settings.moderation && !numeric
+    (round.settings.moderation || saved?.moderation === 'pending') && !numeric
       ? 'Ответ отправлен. Ведущий увидит его, на экран он попадёт после одобрения.'
       : 'Ответ отправлен. Ведущий увидит его.';
   function persist(next: string | number, attempt?: Pending, base = revision) {
