@@ -189,6 +189,7 @@ test('finish, export and recursive deletion remove all descendants and access', 
   await call('host-a', 'finish', { sessionId: sid });
   await assert.rejects(send('a', sid, 'cloud1', 'Поздно', { revision: 1, requestId: 'late' }));
   const exported = await call('host-a', 'export', { sessionId: sid });
+  assert.equal(exported.platform, 'Пульсар — платформа интерактивных опросов');
   assert.equal(exported.rounds[0].answeredCount, 1);
   assert.equal('participantId' in exported.rounds[0].responses[0], false);
   await assert.rejects(call('host-b', 'delete', { sessionId: sid }));
@@ -444,6 +445,7 @@ test('draft launch gates, persisted settings, immutable old rounds and selected 
   );
   await assert.rejects(call('host-a', 'export', { sessionId: sid }), /Завершите встречу/);
   const exported = await call('host-a', 'export', { sessionId: sid, roundId: 'saved' });
+  assert.equal(exported.platform, 'Пульсар — платформа интерактивных опросов');
   assert.equal(exported.rounds.length, 1);
   assert.equal(exported.rounds[0].id, 'saved');
   assert.equal(exported.rounds[0].slide.title, 'Выбор');

@@ -72,6 +72,10 @@ test('CSV retains edited and original text with status while excluding personal 
   assert.ok(!csv.includes('private-person'));
   assert.ok(!csv.includes('private-request'));
   assert.ok(!csv.includes('answer-1'));
+  const rows = csv.trim().split('\r\n');
+  assert.equal(rows[0].split(';').length, rows[1].split(';').length);
+  assert.ok(rows[0].endsWith('"Платформа"'));
+  assert.ok(rows[1].endsWith('"Пульсар — платформа интерактивных опросов"'));
 });
 
 test('CSV escapes semicolons, quotes and line breaks and neutralizes spreadsheet formulas', () => {
@@ -104,4 +108,5 @@ test('CSV uses option names instead of IDs and represents an empty question', ()
   const empty = resultsCsv(data([]));
   assert.ok(empty.includes('"Что изменим?"'));
   assert.equal(empty.split('\r\n').length, 3);
+  assert.ok(empty.includes('"Пульсар — платформа интерактивных опросов"'));
 });

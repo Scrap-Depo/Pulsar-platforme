@@ -5,6 +5,7 @@ export type ExportResponse = Pick<
   'value' | 'displayValue' | 'moderation' | 'likes' | 'revision'
 >;
 export type ResultsExport = {
+  platform?: string;
   title: string;
   exportedAt: string;
   rounds: Array<Round & { answeredCount: number; responses: ExportResponse[] }>;
@@ -60,6 +61,7 @@ export function resultsCsv(data: ResultsExport) {
       'Версия ответа',
       'Ответили на вопрос',
       'Всего ответов',
+      'Платформа',
     ],
   ];
   for (const round of data.rounds) {
@@ -76,6 +78,7 @@ export function resultsCsv(data: ResultsExport) {
         response.revision,
         round.answeredCount,
         round.responses.length,
+        data.platform ?? 'Пульсар — платформа интерактивных опросов',
       ]);
     }
     if (!round.responses.length) {
@@ -91,6 +94,7 @@ export function resultsCsv(data: ResultsExport) {
         '',
         round.answeredCount,
         0,
+        data.platform ?? 'Пульсар — платформа интерактивных опросов',
       ]);
     }
   }

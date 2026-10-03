@@ -746,6 +746,7 @@ test('history charts use reviewed text and closed question exports work during a
   const exported = await download;
   expect(exported.suggestedFilename()).toMatch(/pulsar-.*\.csv/);
   const csv = await readFile((await exported.path())!, 'utf8');
+  expect(csv).toContain('Пульсар — платформа интерактивных опросов');
   expect(csv).toContain('Проверенная формулировка');
   expect(csv).toContain('Исходная формулировка');
   expect(csv).toContain('Скрытый ответ');

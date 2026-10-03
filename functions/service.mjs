@@ -198,7 +198,13 @@ export function createService(db, onSubmitTiming = () => {}) {
           };
         }),
       );
-      return { schemaVersion: 2, title: meeting.title, exportedAt: now(), rounds: exported };
+      return {
+        schemaVersion: 2,
+        platform: 'Пульсар — платформа интерактивных опросов',
+        title: meeting.title,
+        exportedAt: now(),
+        rounds: exported,
+      };
     }
     if (action === 'submit') {
       const rid = text(input.roundId, 100);
