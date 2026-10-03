@@ -110,6 +110,20 @@ test('question toolbar preserves edits, order and the saved meeting name', async
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 1024);
   await host.setViewportSize({ width: 390, height: 844 });
   await expect(host.locator('body')).toHaveJSProperty('scrollWidth', 390);
+  const screenAction = host.getByRole('link', { name: 'Открыть экран просмотра', exact: true });
+  await expect(screenAction).toBeVisible();
+  await expect(host.getByRole('tablist').getByRole('tab')).toHaveCount(2);
+  const screenBounds = (await screenAction.boundingBox())!;
+  const tabsBounds = (await host.getByRole('tablist').boundingBox())!;
+  expect(screenBounds.y).toBeGreaterThanOrEqual(tabsBounds.y + tabsBounds.height);
+  const openedScreen = host.waitForEvent('popup');
+  await screenAction.click();
+  const screen = await openedScreen;
+  await screen.waitForURL(/\/projector\?code=/);
+  await screen.close();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await expect(host.getByRole('heading', { name: 'История и данные' })).toBeVisible();
+  await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
   await host.screenshot({ path: 'test-results/question-controls-mobile.png', fullPage: true });
   await context.close();
 });
@@ -160,7 +174,7 @@ test('host, two mobile participants and projector following the current question
   await preview.getByRole('button', { name: 'Экран участника' }).click();
   const link = await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href');
   const projectorLink = await host
-    .getByRole('link', { name: 'Открыть экран проектора' })
+    .getByRole('link', { name: 'Открыть экран просмотра' })
     .getAttribute('href');
   const pContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p2Context = await browser.newContext({ viewport: { width: 360, height: 740 } });
@@ -316,7 +330,7 @@ test('host, two mobile participants and projector following the current question
   host.once('dialog', (d) => d.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
   await expect(p.getByText('Встреча завершена. Спасибо за участие.')).toBeVisible();
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   const download = host.waitForEvent('download');
   await host.getByRole('button', { name: 'Скачать результаты JSON' }).click();
   expect((await download).suggestedFilename()).toMatch(/pulsar-.*\.json/);
@@ -417,7 +431,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   expect(host.url()).toBe(url);
   const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
   const code = new URL(link).searchParams.get('code')!;
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   await host.getByText('Удалить встречу и все ответы', { exact: true }).click();
   await host.getByLabel('Код для удаления', { exact: true }).fill(code);
   await host.getByRole('button', { name: 'Удалить встречу', exact: true }).click();
@@ -519,7 +533,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
       exact: true,
     }),
   ).toHaveCount(1);
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(2);
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   host.once('dialog', (dialog) => void dialog.accept());
@@ -577,7 +591,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await host.getByText('Завершение встречи', { exact: true }).click();
   host.once('dialog', (dialog) => void dialog.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(4);
   await context.close();
 });
@@ -689,7 +703,7 @@ test('history charts use reviewed text and closed question exports work during a
     .filter({ has: host.getByText('Скрытый ответ', { exact: true }) });
   await hiddenCard.getByRole('button', { name: 'Одобрить', exact: true }).click();
   await hiddenCard.getByRole('button', { name: 'Скрыть', exact: true }).click();
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   const history = host.getByLabel('История запусков вопросов');
   await expect(history.locator('option')).toHaveCount(2);
   await history.selectOption({ index: 1 });
@@ -698,7 +712,7 @@ test('history charts use reviewed text and closed question exports work during a
   ).toBeDisabled();
   await host.getByRole('tab', { name: 'Показ' }).click();
   await closeCollection(host);
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   await host.getByRole('tab', { name: 'Показ' }).click();
   await openTools(host);
   if (await host.getByRole('button', { name: 'Открыть лайки', exact: true }).count())
@@ -717,7 +731,7 @@ test('history charts use reviewed text and closed question exports work during a
   await expect(
     first.getByRole('heading', { name: 'Ответы участников', exact: true }),
   ).toBeVisible();
-  await host.getByRole('tab', { name: 'История' }).click();
+  await host.getByRole('button', { name: 'История', exact: true }).click();
   const chart = host.getByRole('region', { name: 'Итоги выбранного вопроса', exact: true });
   await expect(chart.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
   await expect(chart.getByText('Исходная формулировка', { exact: true })).toHaveCount(0);
@@ -893,7 +907,7 @@ test('reflection template shows others cards after answering and allows only oth
   const projector = await context.newPage();
   await projector.goto(
     (await host
-      .getByRole('link', { name: 'Открыть экран проектора', exact: true })
+      .getByRole('link', { name: 'Открыть экран просмотра', exact: true })
       .getAttribute('href'))!,
   );
   const firstContext = await browser.newContext({

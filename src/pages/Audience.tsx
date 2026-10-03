@@ -61,7 +61,10 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
     <main className={`live-shell ${viewer ? 'projector-view' : 'audience-view'}`}>
       {!(viewer && sid) && (
         <header>
-          <h1>Пульсар</h1>
+          <h1>
+            <span className="pulse-dot" aria-hidden="true" />
+            Пульсар
+          </h1>
           <p>{viewer ? 'Экран аудитории' : 'Участие во встрече'}</p>
         </header>
       )}
@@ -320,7 +323,11 @@ function Connected({
           onSent={() => setEditingRound(null)}
         />
       ) : (
-        <section className="card">
+        <section className="card sent-card">
+          <svg className="sent-check" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" />
+            <path d="M15 27l8 8 14-16" />
+          </svg>
           <p role="status">Ответ отправлен.</p>
           {round.phase === 'open' && (
             <button onClick={() => setEditingRound(round.id)}>

@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import Modal from '../shared/ui/Modal';
 import JoinQr from '../shared/ui/JoinQr';
+import './MeetingNavigation.css';
 
 const slideIcons = {
   'multiple-choice': BarChart3,
@@ -339,9 +340,16 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         <a href={joinLink} target="_blank" rel="noreferrer">
           Вход участника
         </a>
-        <a href={projectorLink} target="_blank" rel="noreferrer">
-          Открыть экран проектора
-        </a>
+        <button
+          disabled={busy}
+          aria-pressed={view === 'results'}
+          onClick={() => {
+            setNotice('');
+            setTab('results');
+          }}
+        >
+          История
+        </button>
       </div>
       {dirty && view !== 'prepare' && !finished && (
         <div className="notice draft-reminder" role="status">
@@ -394,30 +402,34 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
           </div>
         </div>
       </section>
-      <div className="host-tabs" role="tablist" aria-label="Режим работы">
-        {(
-          [
-            ['prepare', 'Подготовка'],
-            ['live', 'Показ'],
-            ['results', 'История'],
-          ] as [HostTab, string][]
-        )
-          .filter(([key]) => key === 'results' || !finished)
-          .map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              disabled={busy}
-              aria-selected={view === key}
-              className="host-tab"
-              onClick={() => {
-                setNotice('');
-                setTab(key);
-              }}
-            >
-              {label}
-            </button>
-          ))}
+      <div className={`host-mode-navigation${finished ? ' is-finished' : ''}`}>
+        {!finished && (
+          <div className="host-tabs" role="tablist" aria-label="Режим работы">
+            {(
+              [
+                ['prepare', 'Подготовка'],
+                ['live', 'Показ'],
+              ] as [HostTab, string][]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                role="tab"
+                disabled={busy}
+                aria-selected={view === key}
+                className="host-tab"
+                onClick={() => {
+                  setNotice('');
+                  setTab(key);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        <a className="projector-open-action" href={projectorLink} target="_blank" rel="noreferrer">
+          Открыть экран просмотра
+        </a>
       </div>
       {view === 'live' && !finished && (
         <>

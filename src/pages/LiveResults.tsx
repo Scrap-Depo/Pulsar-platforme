@@ -23,8 +23,9 @@ export default function LiveResults({
     );
   if (!results.length)
     return (
-      <div className="card live-results">
+      <div className="card live-results waiting-results">
         <h2>{slide.title}</h2>
+        <div className="pulse-ring" aria-hidden="true" />
         <p>{emptyMessage}</p>
       </div>
     );
@@ -77,20 +78,24 @@ export default function LiveResults({
       />
     );
   }
+  const ranked = [...results].sort((a, b) => b.likes - a.likes || a.id.localeCompare(b.id));
+  const density = ranked.length <= 2 ? 'few' : ranked.length <= 6 ? 'some' : 'many';
   return (
-    <section className="live-results">
+    <section className="live-results answer-wall" data-density={density}>
       <h2>{slide.title}</h2>
       <p className="result-summary">Опубликовано карточек: {results.length}</p>
       <div className="answer-grid">
-        {[...results]
-          .sort((a, b) => b.likes - a.likes || a.id.localeCompare(b.id))
-          .map((r) => (
-            <article className="card" key={r.id}>
-              <p className="result-answer-text">{r.value}</p>
-              {r.edited && <small>Отредактировано ведущим</small>}
-              <LikeCount count={r.likes} />
-            </article>
-          ))}
+        {ranked.map((r, i) => (
+          <article
+            className={`card answer-card tone-${i % 5}${i === 0 && r.likes > 0 ? ' is-leader' : ''}`}
+            key={r.id}
+          >
+            {i === 0 && r.likes > 0 && <span className="leader-badge">Лидирует</span>}
+            <p className="result-answer-text">{r.value}</p>
+            {r.edited && <small>Отредактировано ведущим</small>}
+            <LikeCount count={r.likes} />
+          </article>
+        ))}
       </div>
     </section>
   );
