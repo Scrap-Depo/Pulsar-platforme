@@ -121,7 +121,7 @@ test('question toolbar preserves edits, order and the saved meeting name', async
   const screen = await openedScreen;
   await screen.waitForURL(/\/projector\?code=/);
   await screen.close();
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   await expect(host.getByRole('heading', { name: 'История и данные' })).toBeVisible();
   await host.getByRole('tab', { name: 'Подготовка', exact: true }).click();
   await host.screenshot({ path: 'test-results/question-controls-mobile.png', fullPage: true });
@@ -330,7 +330,7 @@ test('host, two mobile participants and projector following the current question
   host.once('dialog', (d) => d.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
   await expect(p.getByText('Встреча завершена. Спасибо за участие.')).toBeVisible();
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   const download = host.waitForEvent('download');
   await host.getByRole('button', { name: 'Скачать результаты JSON' }).click();
   expect((await download).suggestedFilename()).toMatch(/pulsar-.*\.json/);
@@ -357,7 +357,7 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByRole('button', { name: 'Создать аккаунт', exact: true }).click();
   await host.getByRole('button', { name: 'Новая встреча', exact: true }).click();
   await prepareQuestionFixture(host);
-  await expect(host.getByRole('link', { name: 'Вход участника' })).toBeVisible();
+  await expect(host.getByRole('tab', { name: 'Подготовка', exact: true })).toBeVisible();
   const url = host.url();
   await host.getByRole('textbox', { name: 'Вопрос', exact: true }).fill('Какой вариант выбрать?');
   await host.getByText('Оформление результатов', { exact: true }).click();
@@ -427,11 +427,11 @@ test('saved editor, vote changes, reviewed cloud, host recovery and deletion', a
   await host.getByLabel('Email', { exact: true }).fill(email);
   await host.getByLabel('Пароль', { exact: true }).fill(password);
   await host.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(host.getByRole('link', { name: 'Вход участника' })).toBeVisible();
+  await expect(host.getByRole('tab', { name: 'Подготовка', exact: true })).toBeVisible();
   expect(host.url()).toBe(url);
   const link = (await host.getByRole('link', { name: 'Вход участника' }).getAttribute('href'))!;
   const code = new URL(link).searchParams.get('code')!;
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   await host.getByText('Удалить встречу и все ответы', { exact: true }).click();
   await host.getByLabel('Код для удаления', { exact: true }).fill(code);
   await host.getByRole('button', { name: 'Удалить встречу', exact: true }).click();
@@ -533,7 +533,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
       exact: true,
     }),
   ).toHaveCount(1);
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(2);
   await host.getByRole('tab', { name: 'Подготовка' }).click();
   host.once('dialog', (dialog) => void dialog.accept());
@@ -591,7 +591,7 @@ test('preparation settings, live controls and repeat launch are clear on a lapto
   await host.getByText('Завершение встречи', { exact: true }).click();
   host.once('dialog', (dialog) => void dialog.accept());
   await host.getByRole('button', { name: 'Завершить встречу', exact: true }).click();
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   await expect(host.getByLabel('История запусков вопросов').locator('option')).toHaveCount(4);
   await context.close();
 });
@@ -703,7 +703,7 @@ test('history charts use reviewed text and closed question exports work during a
     .filter({ has: host.getByText('Скрытый ответ', { exact: true }) });
   await hiddenCard.getByRole('button', { name: 'Одобрить', exact: true }).click();
   await hiddenCard.getByRole('button', { name: 'Скрыть', exact: true }).click();
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   const history = host.getByLabel('История запусков вопросов');
   await expect(history.locator('option')).toHaveCount(2);
   await history.selectOption({ index: 1 });
@@ -712,7 +712,7 @@ test('history charts use reviewed text and closed question exports work during a
   ).toBeDisabled();
   await host.getByRole('tab', { name: 'Показ' }).click();
   await closeCollection(host);
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   await host.getByRole('tab', { name: 'Показ' }).click();
   await openTools(host);
   if (await host.getByRole('button', { name: 'Открыть лайки', exact: true }).count())
@@ -731,7 +731,7 @@ test('history charts use reviewed text and closed question exports work during a
   await expect(
     first.getByRole('heading', { name: 'Ответы участников', exact: true }),
   ).toBeVisible();
-  await host.getByRole('button', { name: 'История', exact: true }).click();
+  await host.getByRole('tab', { name: 'История', exact: true }).click();
   const chart = host.getByRole('region', { name: 'Итоги выбранного вопроса', exact: true });
   await expect(chart.getByText('Проверенная формулировка', { exact: true })).toBeVisible();
   await expect(chart.getByText('Исходная формулировка', { exact: true })).toHaveCount(0);

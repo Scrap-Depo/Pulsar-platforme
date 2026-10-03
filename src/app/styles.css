@@ -2026,3 +2026,8 @@ a {
 .projector-view .answer-card.is-leader { animation: card-in .45s ease-out both, leader-glow 2.6s ease-in-out .5s infinite; }
 .projector-view .join-qr-corner { animation: qr-breathe 4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .projector-view .live-indicator .pulse-dot, .projector-view .result-summary, .projector-view .answer-card.is-leader, .projector-view .join-qr-corner { animation: none !important; } }
+
+.audience-view { max-width: 680px; margin-inline: auto; }
+.audience-view > header { max-width: none; }
+.audience-view .sent-question { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-muted); }
+.audience-view .sent-card .sent-count { max-width: 32ch; }

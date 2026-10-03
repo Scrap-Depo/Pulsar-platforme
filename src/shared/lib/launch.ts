@@ -6,9 +6,11 @@ export function questionLaunchSettings(slide: SessionSlide): LaunchSettings {
   const moderation = text && input?.moderation === true;
   return {
     cardLimit:
-      slide.type === 'open-answers' && (input?.cardLimit === 3 || input?.cardLimit === 5)
-        ? input.cardLimit
-        : 1,
+      slide.type !== 'open-answers'
+        ? 1
+        : input?.cardLimit === 1 || input?.cardLimit === 3 || input?.cardLimit === 5
+          ? input.cardLimit
+          : 5,
     moderation,
     immediate: text && !moderation ? true : input?.immediate !== false,
     showOnPhones: input?.showOnPhones === true,

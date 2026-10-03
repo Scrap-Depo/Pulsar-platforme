@@ -346,6 +346,7 @@ function Connected({
             <circle cx="26" cy="26" r="24" />
             <path d="M15 27l8 8 14-16" />
           </svg>
+          <p className="sent-question">{round.slide.title}</p>
           <p role="status">Ответ отправлен.</p>
           {ownAnswers.some((answer) => answer.moderation === 'pending') && (
             <p className="answer-meta">
@@ -355,6 +356,9 @@ function Connected({
           {round.settings.cardLimit > 1 && (
             <p className="sent-count">
               Карточек: {ownAnswers.length} из {round.settings.cardLimit}
+              {round.phase === 'open' && ownAnswers.length < round.settings.cardLimit
+                ? '. Есть ещё мысли? Напишите отдельной карточкой.'
+                : ''}
             </p>
           )}
           {round.phase === 'open' && ownAnswers.length < round.settings.cardLimit && (

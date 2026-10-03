@@ -346,19 +346,6 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         >
           Мои встречи
         </button>
-        <a className="quiet-link" href={joinLink} target="_blank" rel="noreferrer">
-          Вход участника
-        </a>
-        <button
-          disabled={busy}
-          aria-pressed={view === 'results'}
-          onClick={() => {
-            setNotice('');
-            setTab('results');
-          }}
-        >
-          История
-        </button>
       </div>
       {dirty && view !== 'prepare' && !finished && (
         <div className="notice draft-reminder" role="status">
@@ -412,14 +399,16 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
       </section>
       <div className={`host-mode-navigation${finished ? ' is-finished' : ''}`}>
-        {!finished && (
-          <div className="host-tabs" role="tablist" aria-label="Режим работы">
-            {(
-              [
-                ['prepare', 'Подготовка'],
-                ['live', 'Показ'],
-              ] as [HostTab, string][]
-            ).map(([key, label]) => (
+        <div className="host-tabs" role="tablist" aria-label="Режим работы">
+          {(
+            [
+              ['prepare', 'Подготовка'],
+              ['live', 'Показ'],
+              ['results', 'История'],
+            ] as [HostTab, string][]
+          )
+            .filter(([key]) => !finished || key === 'results')
+            .map(([key, label]) => (
               <button
                 key={key}
                 role="tab"
@@ -434,8 +423,7 @@ function HostSession({ id, onBack }: { id: string; onBack: () => void }) {
                 {label}
               </button>
             ))}
-          </div>
-        )}
+        </div>
         <a className="projector-open-action" href={projectorLink} target="_blank" rel="noreferrer">
           <ExternalLink size={18} aria-hidden="true" />
           Открыть экран просмотра
@@ -1306,6 +1294,9 @@ function ParticipantConnection({
           >
             Скопировать ссылку
           </button>
+          <a className="quiet-link" href={url} target="_blank" rel="noreferrer">
+            Вход участника
+          </a>
         </div>
       </div>
     </details>
@@ -1596,12 +1587,16 @@ function LiveQuestionRail({
       const target = event.target instanceof Element ? event.target : null;
       if (
         target?.closest(
-          'input, textarea, select, button, [contenteditable]:not([contenteditable="false"]), [role="tab"], [role="slider"]',
+          'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="slider"]',
         )
       )
         return;
-      const slide =
-        event.key === 'ArrowLeft' ? previous : event.key === 'ArrowRight' ? next : undefined;
+      // PageUp/PageDown are what presentation clickers send.
+      const slide = ['ArrowLeft', 'PageUp'].includes(event.key)
+        ? previous
+        : ['ArrowRight', 'PageDown'].includes(event.key)
+          ? next
+          : undefined;
       if (slide) {
         event.preventDefault();
         void onLaunch(slide);
@@ -1624,7 +1619,7 @@ function LiveQuestionRail({
         </button>
         <p className="rail-position">
           {index >= 0 ? `Вопрос ${index + 1} из ${slides.length}` : 'Выберите вопрос'}
-          <small>Стрелки ← → на клавиатуре</small>
+          <small>Стрелки ← → или PageUp / PageDown</small>
         </p>
         <button
           className="primary-action rail-next"
