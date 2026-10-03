@@ -1,3 +1,4 @@
+import LikeCount from '../shared/ui/LikeCount';
 import { PublicResponse, Round } from '../shared/types/live';
 import MultipleChoiceProjector from '../features/multiple-choice/components/MultipleChoiceProjector';
 import PulseProjector from '../features/pulse/components/PulseProjector';
@@ -79,15 +80,15 @@ export default function LiveResults({
   return (
     <section className="live-results">
       <h2>{slide.title}</h2>
-      <p>Опубликовано карточек: {results.length}</p>
+      <p className="result-summary">Опубликовано карточек: {results.length}</p>
       <div className="answer-grid">
         {[...results]
           .sort((a, b) => b.likes - a.likes || a.id.localeCompare(b.id))
           .map((r) => (
             <article className="card" key={r.id}>
-              <p>{r.value}</p>
+              <p className="result-answer-text">{r.value}</p>
               {r.edited && <small>Отредактировано ведущим</small>}
-              <p>Лайков: {r.likes}</p>
+              <LikeCount count={r.likes} />
             </article>
           ))}
       </div>

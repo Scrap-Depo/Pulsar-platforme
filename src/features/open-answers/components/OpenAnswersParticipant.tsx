@@ -1,3 +1,4 @@
+import LikeIcon from '../../../shared/ui/LikeIcon';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import { OpenAnswer } from '../model/types';
@@ -58,14 +59,19 @@ export default function OpenAnswersParticipant({
 
             return (
               <div key={answer.id} className="card" style={{ padding: 16 }}>
-                <p style={{ marginTop: 0 }}>"{answer.text}"</p>
+                <p className="participant-answer-text" style={{ marginTop: 0 }}>
+                  "{answer.text}"
+                </p>
                 <div className="button-row">
                   <Button
                     variant={isLiked ? 'primary' : 'secondary'}
                     onClick={() => onToggleLike(answer.id)}
                     disabled={!allowLikes}
+                    icon={<LikeIcon size={48} />}
+                    aria-pressed={isLiked}
+                    aria-label={`${isLiked ? 'Снять лайк' : 'Поставить лайк'} (${answer.likes})`}
                   >
-                    {isLiked ? `Убрать лайк (${answer.likes})` : `Лайк (${answer.likes})`}
+                    {answer.likes}
                   </Button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import LikeIcon from '../shared/ui/LikeIcon';
+import LikeCount from '../shared/ui/LikeCount';
 import { Room, PublicResponse, OwnAnswers } from '../shared/types/live';
 import { useLiveDoc, useLiveList, useOnline } from '../shared/hooks/useLiveData';
 import { command, message } from '../shared/lib/liveApi';
@@ -339,17 +340,11 @@ function Connected({
                     );
               return (
                 <article className="participant-idea" key={r.id}>
-                  <p>{r.value}</p>
+                  <p className="participant-answer-text">{r.value}</p>
                   {ownAnswers.some((answer) => answer.id === r.id) ? (
                     <div className="idea-footer">
-                      <span>Ваш ответ</span>
-                      <span
-                        className="idea-like-count"
-                        aria-label={`Ваш ответ · Лайков: ${r.likes}`}
-                      >
-                        <LikeIcon size={48} />
-                        <span>{r.likes}</span>
-                      </span>
+                      <span className="answer-meta">Ваш ответ</span>
+                      <LikeCount count={r.likes} label={`Ваш ответ · Лайков: ${r.likes}`} />
                     </div>
                   ) : (
                     <div className="idea-like-action">

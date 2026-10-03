@@ -1,3 +1,4 @@
+import LikeCount from '../../../shared/ui/LikeCount';
 import Modal from '../../../shared/ui/Modal';
 
 type FocusedAnswerModalProps = {
@@ -10,7 +11,7 @@ export default function FocusedAnswerModal({ text, likes }: FocusedAnswerModalPr
     <Modal>
       <p className="muted">Фокус ответа</p>
       <h2 style={{ marginTop: 0 }}>"{text}"</h2>
-      <p className="hero-text">Лайков: {likes}</p>
+      <LikeCount count={likes} />
     </Modal>
   );
 }

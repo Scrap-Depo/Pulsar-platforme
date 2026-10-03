@@ -1930,3 +1930,12 @@ a {
 .idea-like-button[aria-pressed="true"] { background: #1d4ed8; border-color: #93c5fd; color: #fff; box-shadow: 0 0 0 2px rgba(147, 197, 253, .25); }
 
 .idea-like-button[aria-pressed="true"]:disabled { opacity: 1; }
+
+.like-count { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; line-height: 1; }
+.audience-view .participant-answer-text, .audience-view .result-answer-text { font-size: 20px; line-height: 1.5; font-weight: 600; }
+.audience-view .answer-meta { font-size: 13px; line-height: 1.4; font-weight: 400; color: var(--text-muted); }
+.audience-view .participant-ideas > p, .live-results .result-summary { font-size: 14px; line-height: 1.4; color: var(--text-muted); }
+.audience-view .participant-idea .like-feedback { font-size: 13px; line-height: 1.4; font-weight: 400; color: var(--text-muted); }
+.audience-view p[role="status"] { font-size: 14px; font-weight: 400; }
+.audience-view .response-form label { font-size: 14px; }
+.audience-view .response-form textarea { font-size: 20px; line-height: 1.5; }

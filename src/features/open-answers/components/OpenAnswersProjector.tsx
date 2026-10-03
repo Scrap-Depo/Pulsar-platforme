@@ -1,3 +1,4 @@
+import LikeCount from '../../../shared/ui/LikeCount';
 import { CSSProperties } from 'react';
 import { sortAnswersByLikes } from '../model/utils';
 import Button from '../../../shared/ui/Button';
@@ -21,7 +22,7 @@ export default function OpenAnswersProjector({
 }: OpenAnswersProjectorProps) {
   const sortedAnswers = sortAnswersByLikes(answers);
   const focusedAnswer = focusedAnswerId
-    ? sortedAnswers.find((answer) => answer.id === focusedAnswerId) ?? null
+    ? (sortedAnswers.find((answer) => answer.id === focusedAnswerId) ?? null)
     : null;
   const layoutStyle: CSSProperties | undefined =
     visualization === 'wall'
@@ -41,23 +42,36 @@ export default function OpenAnswersProjector({
 
   return (
     <div style={{ width: '100%', maxWidth: 920 }}>
-      <p className="muted" style={{ textAlign: 'center' }}>Проектор</p>
-      <h1 className="hero-title" style={{ textAlign: 'center' }}>{question}</h1>
+      <p className="muted" style={{ textAlign: 'center' }}>
+        Проектор
+      </p>
+      <h1 className="hero-title" style={{ textAlign: 'center' }}>
+        {question}
+      </h1>
 
       {focusedAnswer && (
-        <div className="card" style={{ padding: 28, marginBottom: 20, background: focusedAnswer.color }}>
-          <div className="button-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          className="card"
+          style={{ padding: 28, marginBottom: 20, background: focusedAnswer.color }}
+        >
+          <div
+            className="button-row"
+            style={{ justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <strong>Фокус</strong>
             <Button variant="ghost" onClick={() => onFocusedAnswerChange(null)}>
               Закрыть
             </Button>
           </div>
           <p style={{ fontSize: 32, lineHeight: 1.2 }}>"{focusedAnswer.text}"</p>
-          <p className="muted" style={{ marginBottom: 0 }}>Лайков: {focusedAnswer.likes}</p>
+          <LikeCount count={focusedAnswer.likes} />
         </div>
       )}
 
-      <div className={visualization === 'cards' ? 'section-stack' : undefined} style={{ opacity: focusedAnswer ? 0.45 : 1, ...layoutStyle }}>
+      <div
+        className={visualization === 'cards' ? 'section-stack' : undefined}
+        style={{ opacity: focusedAnswer ? 0.45 : 1, ...layoutStyle }}
+      >
         {sortedAnswers.map((answer) => (
           <button
             key={answer.id}
@@ -77,7 +91,7 @@ export default function OpenAnswersProjector({
             }}
           >
             <p style={{ fontSize: 24, marginTop: 0 }}>"{answer.text}"</p>
-            <p className="muted" style={{ marginBottom: 0 }}>Лайков: {answer.likes}</p>
+            <LikeCount count={answer.likes} />
           </button>
         ))}
       </div>

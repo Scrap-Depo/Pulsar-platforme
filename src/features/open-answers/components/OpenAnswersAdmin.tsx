@@ -1,3 +1,4 @@
+import LikeCount from '../../../shared/ui/LikeCount';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
 import GlassToggle from '../../../shared/ui/GlassToggle';
@@ -122,9 +123,7 @@ export default function OpenAnswersAdmin({
                       {isFocused ? 'Убрать фокус' : 'В фокус'}
                     </Button>
                   </div>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Лайков: {answer.likes}
-                  </p>
+                  <LikeCount count={answer.likes} />
                 </div>
               </div>
             );
