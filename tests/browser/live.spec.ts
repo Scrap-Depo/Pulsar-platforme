@@ -898,6 +898,26 @@ test('reflection template shows others cards after answering and allows only oth
   );
   const firstContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const secondContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  let rejectLike = false;
+  // Simulate a slow network: button feedback must not wait for the server.
+  await firstContext.route('**/europe-west1/pulsar', async (route) => {
+    const body = route.request().postDataJSON();
+    if (body?.data?.action === 'like') {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (rejectLike) {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          headers: { 'access-control-allow-origin': 'http://127.0.0.1:5188' },
+          body: JSON.stringify({
+            error: { status: 'FAILED_PRECONDITION', message: 'Тестовый отказ сохранения.' },
+          }),
+        });
+        return;
+      }
+    }
+    await route.continue();
+  });
   const first = await firstContext.newPage();
   const second = await secondContext.newPage();
   for (const [page, answer] of [
@@ -916,6 +936,7 @@ test('reflection template shows others cards after answering and allows only oth
   const other = ideas.locator('article').filter({ hasText: 'Идея второго участника' });
   await expect(mine.getByRole('button')).toHaveCount(0);
   await other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'true', { timeout: 500 });
   await expect(projector.locator('.like-burst')).toHaveCount(1);
   await expect(projector.locator('.like-burst')).toHaveCSS('animation-name', 'like-float');
   await expect(first.locator('.like-burst')).toHaveCount(0);
@@ -938,7 +959,16 @@ test('reflection template shows others cards after answering and allows only oth
   await first.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await expect(first.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toBeVisible();
   await first.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'false', {
+    timeout: 500,
+  });
   await expect(first.getByText('Лайк снят.', { exact: true })).toBeVisible();
+  await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
+  rejectLike = true;
+  await other.getByRole('button', { name: 'Поставить лайк (0)', exact: true }).click();
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'true', { timeout: 500 });
+  await expect(first.getByRole('alert')).toContainText('Тестовый отказ сохранения.');
+  await expect(other.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
   await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await openTools(host);
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();

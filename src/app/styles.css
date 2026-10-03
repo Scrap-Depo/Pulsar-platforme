@@ -1928,3 +1928,5 @@ a {
 
 .participant-idea .like-feedback { margin: 8px 0 0; font-size: 14px; line-height: 1.4; }
 .idea-like-button[aria-pressed="true"] { background: #1d4ed8; border-color: #93c5fd; color: #fff; box-shadow: 0 0 0 2px rgba(147, 197, 253, .25); }
+
+.idea-like-button[aria-pressed="true"]:disabled { opacity: 1; }

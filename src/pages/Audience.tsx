@@ -174,7 +174,7 @@ function Connected({
   const [error, setError] = useState('');
   const [liking, setLiking] = useState<string | null>(null);
   const [likeAcks, setLikeAcks] = useState<
-    Record<string, { roundId: string; revision: number; enabled: boolean }>
+    Record<string, { roundId: string; revision: number; enabled: boolean; pending: boolean }>
   >({});
   const [likeNotice, setLikeNotice] = useState<{
     roundId: string;
@@ -188,12 +188,13 @@ function Connected({
       for (const [id, ack] of Object.entries(current)) {
         if (
           ack.roundId !== round?.id ||
-          likes.data.some(
-            (like) =>
-              like.responseId === id &&
-              like.revision === ack.revision &&
-              like.enabled === ack.enabled,
-          )
+          (!ack.pending &&
+            likes.data.some(
+              (like) =>
+                like.responseId === id &&
+                like.revision === ack.revision &&
+                like.enabled === ack.enabled,
+            ))
         ) {
           delete next[id];
           changed = true;
@@ -259,14 +260,23 @@ function Connected({
   async function toggle(response: PublicResponse, enabled: boolean) {
     setLiking(response.id);
     setError('');
+    setLikeAcks((current) => ({
+      ...current,
+      [response.id]: { roundId: round!.id, revision: response.revision, enabled, pending: true },
+    }));
     try {
       await command('like', { sessionId, roundId: round!.id, responseId: response.id, enabled });
       setLikeAcks((current) => ({
         ...current,
-        [response.id]: { roundId: round!.id, revision: response.revision, enabled },
+        [response.id]: { roundId: round!.id, revision: response.revision, enabled, pending: false },
       }));
       setLikeNotice({ roundId: round!.id, responseId: response.id, enabled });
     } catch (e) {
+      setLikeAcks((current) => {
+        const next = { ...current };
+        delete next[response.id];
+        return next;
+      });
       setError(message(e));
     } finally {
       setLiking(null);
@@ -362,7 +372,7 @@ function Connected({
                       </button>
                       {liking === r.id ? (
                         <p className="like-feedback" role="status">
-                          {enabled ? 'Снимаем лайк…' : 'Ставим лайк…'}
+                          {ack?.enabled ? 'Ставим лайк…' : 'Снимаем лайк…'}
                         </p>
                       ) : enabled ? (
                         <p className="like-feedback" role="status">
