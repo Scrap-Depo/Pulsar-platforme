@@ -928,6 +928,9 @@ test('reflection template shows others cards after answering and allows only oth
     'aria-pressed',
     'true',
   );
+  await expect(
+    first.getByText('Лайк поставлен. Нажмите ещё раз, чтобы снять.', { exact: true }),
+  ).toBeVisible();
   await expect(second.getByLabel('Ваш ответ · Лайков: 1', { exact: true })).toBeVisible();
   await expect(ideas.locator('article').first()).toContainText('Идея второго участника');
   await expect(other.getByRole('button').locator('img')).toBeVisible();
@@ -935,6 +938,7 @@ test('reflection template shows others cards after answering and allows only oth
   await first.getByRole('button', { name: 'Подключиться', exact: true }).click();
   await expect(first.getByRole('button', { name: 'Снять лайк (1)', exact: true })).toBeVisible();
   await first.getByRole('button', { name: 'Снять лайк (1)', exact: true }).click();
+  await expect(first.getByText('Лайк снят.', { exact: true })).toBeVisible();
   await expect(second.getByLabel('Ваш ответ · Лайков: 0', { exact: true })).toBeVisible();
   await openTools(host);
   await host.getByRole('button', { name: 'Закрыть лайки', exact: true }).click();

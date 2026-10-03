@@ -45,13 +45,13 @@ export default function LiveLikeReaction({
             className="like-burst"
             aria-hidden="true"
             style={{
-              left: `clamp(calc(var(--like-amplitude) + 56px), ${burst.x}vw, calc(100vw - var(--like-amplitude) - 56px))`,
+              left: `clamp(calc(var(--like-amplitude) + 104px), ${burst.x}vw, calc(100vw - var(--like-amplitude) - 104px))`,
             }}
             onAnimationEnd={() =>
               setBursts((current) => current.filter((item) => item.id !== burst.id))
             }
           >
-            <LikeIcon size={96} />
+            <LikeIcon size={192} />
           </span>
         ))}
     </>

@@ -173,6 +173,36 @@ function Connected({
   );
   const [error, setError] = useState('');
   const [liking, setLiking] = useState<string | null>(null);
+  const [likeAcks, setLikeAcks] = useState<
+    Record<string, { roundId: string; revision: number; enabled: boolean }>
+  >({});
+  const [likeNotice, setLikeNotice] = useState<{
+    roundId: string;
+    responseId: string;
+    enabled: boolean;
+  } | null>(null);
+  useEffect(() => {
+    setLikeAcks((current) => {
+      const next = { ...current };
+      let changed = false;
+      for (const [id, ack] of Object.entries(current)) {
+        if (
+          ack.roundId !== round?.id ||
+          likes.data.some(
+            (like) =>
+              like.responseId === id &&
+              like.revision === ack.revision &&
+              like.enabled === ack.enabled,
+          )
+        ) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [round?.id, likes.data]);
+
   const [editingRound, setEditingRound] = useState<string | null>(null);
   if (room.error || (room.loaded && !room.data))
     return (
@@ -231,6 +261,11 @@ function Connected({
     setError('');
     try {
       await command('like', { sessionId, roundId: round!.id, responseId: response.id, enabled });
+      setLikeAcks((current) => ({
+        ...current,
+        [response.id]: { roundId: round!.id, revision: response.revision, enabled },
+      }));
+      setLikeNotice({ roundId: round!.id, responseId: response.id, enabled });
     } catch (e) {
       setError(message(e));
     } finally {
@@ -285,9 +320,13 @@ function Connected({
           {[...published.data]
             .sort((a, b) => b.likes - a.likes || a.id.localeCompare(b.id))
             .map((r) => {
-              const enabled = likes.data.some(
-                (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
-              );
+              const ack = likeAcks[r.id];
+              const enabled =
+                ack?.roundId === round.id && ack.revision === r.revision
+                  ? ack.enabled
+                  : likes.data.some(
+                      (l) => l.responseId === r.id && l.enabled && l.revision === r.revision,
+                    );
               return (
                 <article className="participant-idea" key={r.id}>
                   <p>{r.value}</p>
@@ -303,23 +342,40 @@ function Connected({
                       </span>
                     </div>
                   ) : (
-                    <button
-                      className="idea-like-button"
-                      disabled={!round.likesOpen || liking !== null}
-                      aria-label={`${enabled ? 'Снять лайк' : 'Поставить лайк'} (${r.likes})`}
-                      title={
-                        round.likesOpen
-                          ? enabled
-                            ? 'Снять лайк'
-                            : 'Поставить лайк'
-                          : 'Лайки закрыты ведущим'
-                      }
-                      aria-pressed={enabled}
-                      onClick={() => void toggle(r, !enabled)}
-                    >
-                      <LikeIcon size={48} />
-                      <span>{r.likes}</span>
-                    </button>
+                    <div className="idea-like-action">
+                      <button
+                        className="idea-like-button"
+                        disabled={!round.likesOpen || !likes.loaded || liking !== null}
+                        aria-label={`${enabled ? 'Снять лайк' : 'Поставить лайк'} (${r.likes})`}
+                        title={
+                          round.likesOpen
+                            ? enabled
+                              ? 'Снять лайк'
+                              : 'Поставить лайк'
+                            : 'Лайки закрыты ведущим'
+                        }
+                        aria-pressed={enabled}
+                        onClick={() => void toggle(r, !enabled)}
+                      >
+                        <LikeIcon size={48} />
+                        <span>{r.likes}</span>
+                      </button>
+                      {liking === r.id ? (
+                        <p className="like-feedback" role="status">
+                          {enabled ? 'Снимаем лайк…' : 'Ставим лайк…'}
+                        </p>
+                      ) : enabled ? (
+                        <p className="like-feedback" role="status">
+                          Лайк поставлен{round.likesOpen ? '. Нажмите ещё раз, чтобы снять.' : '.'}
+                        </p>
+                      ) : likeNotice?.roundId === round.id &&
+                        likeNotice.responseId === r.id &&
+                        !likeNotice.enabled ? (
+                        <p className="like-feedback" role="status">
+                          Лайк снят.
+                        </p>
+                      ) : null}
+                    </div>
                   )}
                 </article>
               );

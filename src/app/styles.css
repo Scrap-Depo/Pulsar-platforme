@@ -1812,7 +1812,7 @@ a {
   --like-amplitude: clamp(48px, 12vw, 180px);
   pointer-events: none;
   color: #60a5fa;
-  animation: like-float 4.8s linear forwards;
+  animation: like-float 5.8s linear forwards;
 }
 /* Two sine waves sampled densely for smooth motion across browsers. */
 @keyframes like-float {
@@ -1925,3 +1925,6 @@ a {
 
 .like-icon { display: block; flex-shrink: 0; object-fit: contain; }
 .like-burst .like-icon { filter: drop-shadow(0 3px 6px rgba(37, 99, 235, 0.35)); }
+
+.participant-idea .like-feedback { margin: 8px 0 0; font-size: 14px; line-height: 1.4; }
+.idea-like-button[aria-pressed="true"] { background: #1d4ed8; border-color: #93c5fd; color: #fff; box-shadow: 0 0 0 2px rgba(147, 197, 253, .25); }
