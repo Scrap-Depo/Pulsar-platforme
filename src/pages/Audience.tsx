@@ -68,6 +68,14 @@ export default function Audience({ user, viewer }: { user: User; viewer: boolean
           <p>{viewer ? 'Экран аудитории' : 'Участие во встрече'}</p>
         </header>
       )}
+      {viewer && sid && (
+        <p className="projector-brand">
+          <span className="pulse-dot" aria-hidden="true" />
+          <span>
+            <strong>Пульсар</strong> — платформа интерактивных опросов
+          </span>
+        </p>
+      )}
       {!online && (
         <p className="notice" role="status">
           Нет соединения. Показанные данные могут быть устаревшими.
@@ -249,7 +257,6 @@ function Connected({
           <div className="projector-title">
             <h2>{data.title}</h2>
             <p className={`live-indicator${round.phase === 'open' ? '' : ' paused'}`} role="status">
-              <span className="pulse-dot" aria-hidden="true" />
               {round.phase === 'open' ? 'Идёт сбор ответов' : 'Сбор ответов завершён'}
             </p>
           </div>
