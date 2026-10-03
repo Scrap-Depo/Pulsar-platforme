@@ -1977,3 +1977,6 @@ a {
 .audience-view .sent-card button { margin-top: 8px; }
 .audience-view h1 { display: flex; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .answer-card, .pulse-dot, .pulse-ring::after, .sent-check path { animation: none !important; stroke-dashoffset: 0; } }
+
+.audience-view .sent-card .sent-count { margin: 0; font-size: 15px; color: var(--text-muted); }
+.audience-view .sent-card button { width: 100%; min-height: 52px; }

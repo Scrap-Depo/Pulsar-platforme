@@ -10,14 +10,16 @@ export default function ResponseForm({
   round,
   own,
   onSent,
+  initialSlot = 0,
 }: {
   sessionId: string;
   uid: string;
   round: Round;
   own: OwnResponse[];
   onSent?: () => void;
+  initialSlot?: number;
 }) {
-  const [slot, setSlot] = useState(0);
+  const [slot, setSlot] = useState(initialSlot);
   const count = round.slide.type === 'open-answers' ? round.settings.cardLimit : 1;
   return (
     <section className="card response-form">

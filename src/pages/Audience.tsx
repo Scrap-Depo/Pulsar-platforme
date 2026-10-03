@@ -209,6 +209,7 @@ function Connected({
   }, [round?.id, likes.data]);
 
   const [editingRound, setEditingRound] = useState<string | null>(null);
+  const [startSlot, setStartSlot] = useState(0);
   if (room.error || (room.loaded && !room.data))
     return (
       <section className="card">
@@ -320,6 +321,7 @@ function Connected({
           uid={uid}
           round={round}
           own={ownAnswers}
+          initialSlot={startSlot}
           onSent={() => setEditingRound(null)}
         />
       ) : (
@@ -329,11 +331,35 @@ function Connected({
             <path d="M15 27l8 8 14-16" />
           </svg>
           <p role="status">Ответ отправлен.</p>
+          {round.settings.cardLimit > 1 && (
+            <p className="sent-count">
+              Карточек: {ownAnswers.length} из {round.settings.cardLimit}
+            </p>
+          )}
+          {round.phase === 'open' && ownAnswers.length < round.settings.cardLimit && (
+            <button
+              className="primary-action"
+              onClick={() => {
+                const taken = new Set(ownAnswers.map((answer) => answer.slot));
+                setStartSlot(
+                  Array.from({ length: round.settings.cardLimit }, (_, i) => i).find(
+                    (i) => !taken.has(i),
+                  ) ?? 0,
+                );
+                setEditingRound(round.id);
+              }}
+            >
+              Добавить ещё одну карточку
+            </button>
+          )}
           {round.phase === 'open' && (
-            <button onClick={() => setEditingRound(round.id)}>
-              {round.settings.cardLimit === 3
-                ? 'Добавить или изменить мои ответы'
-                : 'Изменить мой ответ'}
+            <button
+              onClick={() => {
+                setStartSlot(0);
+                setEditingRound(round.id);
+              }}
+            >
+              {round.settings.cardLimit > 1 ? 'Изменить мои карточки' : 'Изменить мой ответ'}
             </button>
           )}
         </section>
